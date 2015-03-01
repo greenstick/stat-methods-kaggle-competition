@@ -9,7 +9,7 @@
 # biocLite("MLInterfaces")
 # install.packages("MLInterfaces")
 # library("MASS")
-
+library(MLInterfaces)
 # data(crabs)
 # set.seed(1337)
 # kp = sample(1:200, size=100)
@@ -19,6 +19,7 @@
 #
 # Data Imports
 # 
+# setwd Set Working Directory to Kaggle repository
 
 subtypeData         <- read.csv("data/subtype.csv")
 mapData             <- read.csv("data/scoring_and_test_set_id_mappings.csv")
@@ -43,8 +44,16 @@ for (value in testedCellLines) {
     }
 }
 
+testedCellLines.mod<-lapply(trainKey$X, as.character)
+testedCellLines.mod[4]<-paste("X", testedCellLines.mod[4],sep="") #changes 184A1 to X184A1
+#Extracting desired cell line columns out of expressionData
+
+trainExpressionData.mod<-expressionData[which(names(expressionData) %in% testedCellLines.mod)]
+#We need to reorder the columns according to trainKey
+trainExpressionData.mod.reorder<-trainExpressionData.mod[,testedCellLines]
+
 # Mash Data Frames Together & Remove Duplicate Row Names From trainKey 
-trainingData        <- data.frame(cbind(trainKey[-1], t(as.data.frame(trainExpressionData))))
+trainingData        <- data.frame(cbind(trainKey[-1], t(as.data.frame(trainExpressionData.mod.reorder))))
 # And Testing Data - Naming Conventions (Not Sure if This Will Actually be Needed - Does MLInterfaces handle train/validate/test?)
 testingData         <- testExpressionData
 
@@ -59,8 +68,8 @@ genePredictorRange  <- 1:100 #Selects Genes Labeled X1 - X10 in Training Data Se
 predictorGenes      <- paste(paste("X", genePredictorRange, sep=""), collapse= " + ") #Creates Predictor String for Formula 
 
 # MLInterfaces Common Parameters
-set.seed(100) # Not Entirely Sure What This Does - I Think It Sets Weights or Something
-kp                  <- sample(1:100, size = 10) # Not Sure of This Either, Randomization of Sample Inputs?
+set.seed(100) # random number generator, set seed specifies the seed so you can get consistent results
+kp                  <- sample(1:100, size = 10) # samples from vector x (1:100) of size n (10)
 
 #
 # Test MLInterfaces Using Carboplatin Drug
