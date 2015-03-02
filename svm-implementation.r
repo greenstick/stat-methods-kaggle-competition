@@ -91,12 +91,12 @@ testingData         <- data.frame(t(as.data.frame(testExpressionData.mod.reorder
 #
 
 # SVM Parameters 
-svmCost     <- 8
-svmGamma    <- 0.4
+svmCost     <- 0.2
+svmGamma    <- 1.2
 svmKernel   <- "polynomial"
-svmDegree   <- 5
+svmDegree   <- 3
 svmType     <- "C-classification"
-nGenes      <- 1000
+nGenes      <- 2000
 
 # General Parameters
 drugs               <- gsub("-", ".", trainKeyTransposed$Drug) # Vector of Drug Names
@@ -223,6 +223,6 @@ ids          <- seq(1, length(values), 1)
 subdf        <- data.frame(id=as.matrix(ids), value=as.matrix(values))
 submission   <- data.frame(lapply(subdf, as.character), stringsAsFactors=FALSE)
 print(submission)
-filename     <- paste("submissions/svm/genes_", nGenes, "_kernel_", svmKernel, "_cost_", svmCost, "_gamma_", svmGamma, ".csv", sep="")
+filename     <- paste("submissions/svm/genes_", nGenes, "_kernel_", svmKernel, "_cost_", svmCost, "_gamma_", svmGamma, "_degree_", svmDegree, ".csv", sep="")
 write.csv(submission, file=filename, row.names = FALSE)
 
