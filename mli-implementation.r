@@ -94,18 +94,19 @@ formula         <- as.formula(paste("Carboplatin ~ ", predictorGenes, sep=""))
 # 
 
 # # Generate SVM Models 
-linearModel             <- svm(formula, data = trainingData, Type = "c.classification", gamma = 00.1, cost = 100, kernel = "linear")
+linearModel             <- svm(formula, data = trainingData, type = "C-classification", gamma = 00.1, cost = 100, kernel = "linear")
 print(linearModel)
-polyModel               <- svm(formula, data = trainingData, Type = "c.classification", gamma = 00.1, cost = 100, kernel = "polynomial")
+polyModel               <- svm(formula, data = trainingData, type = "C-classification", gamma = 00.1, cost = 100, kernel = "polynomial")
 print(polyModel)
-radialModel             <- svm(formula, data = trainingData, Type = "c.classification", gamma = 00.1, cost = 100, kernel = "radial")
+radialModel             <- svm(formula, data = trainingData, type = "C-classification", gamma = 00.1, cost = 100, kernel = "radial")
 print(radialModel)
-# sigmoidModel            <- svm(formula, data = trainingData, Type = c.classification, gamma = 00.1, cost = 100, kernel = "sigmoid")
-# print(sigmoidModel)
+sigmoidModel            <- svm(formula, data = trainingData, type = "C-classification", gamma = 00.1, cost = 100, kernel = "sigmoid")
+print(sigmoidModel)
 
 # Linear Kernel Predictions 
-trainLinearPrediction   <- round(predict(linearModel, trainingData))
-trainLinearError        <- sum(trainingData$Carboplatin - trainLinearPrediction) / length(trainLinearPrediction) * 100
+#trainLinearPrediction   <- round(predict(linearModel, trainingData))
+trainLinearPrediction   <- predict(linearModel, trainingData)
+trainLinearError        <- sum(trainingData$Carboplatin - (as.numeric(trainLinearPrediction)-1)) / length(trainLinearPrediction) * 100
 print(paste("Training Data SVM Linear Kernel Prediction Error:", decimals(abs(trainLinearError), 2), "%"))
 
 # testLinearPrediction    <- round(predict(linearModel, teData))
@@ -113,8 +114,9 @@ print(paste("Training Data SVM Linear Kernel Prediction Error:", decimals(abs(tr
 # print(paste("Testing Data SVM Linear Kernel Prediction Error:", decimals(abs(testLinearError), 2), "%"))
 
 # Polynomial Kernel Predictions 
-trainPolyPrediction     <- round(predict(polyModel, trainingData))
-trainPolyError          <- sum(trainingData$Carboplatin - trainPolyPrediction) / length(trainPolyPrediction) * 100
+#trainPolyPrediction     <- round(predict(polyModel, trainingData))
+trainPolyPrediction     <- predict(polyModel, trainingData)
+trainPolyError          <- sum(trainingData$Carboplatin - (as.numeric(trainPolyPrediction)-1)) / length(trainPolyPrediction) * 100
 print(paste("Training Data SVM Polynomial Kernel Prediction Error:", decimals(abs(trainPolyError), 2), "%"))
 
 # testPolyPrediction      <- round(predict(polyModel, teData))
@@ -122,8 +124,9 @@ print(paste("Training Data SVM Polynomial Kernel Prediction Error:", decimals(ab
 # print(paste("Testing Data SVM Polynomial Kernel Prediction Error:", decimals(abs(testPolyError), 2), "%"))
 
 # Radial Kernel Predictions 
-trainRadialPrediction   <- round(predict(radialModel, trainingData))
-trainRadialError        <- sum(trainingData$Carboplatin - trainRadialPrediction) / length(trainRadialPrediction) * 100
+#trainRadialPrediction   <- round(predict(radialModel, trainingData))
+trainRadialPrediction   <- predict(radialModel, trainingData)
+trainRadialError        <- sum(trainingData$Carboplatin - (as.numeric(trainRadialPrediction)-1)) / length(trainRadialPrediction) * 100
 print(paste("Training Data SVM Radial Kernel Prediction Error:", decimals(abs(trainRadialError), 2), "%"))
 
 # testRadialPrediction    <- round(predict(radialModel, teData))
