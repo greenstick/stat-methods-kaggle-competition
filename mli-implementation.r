@@ -25,7 +25,8 @@ decimals            <- function (x, d) {
 }
 
 #Not In function
-`%notin%` <- function(x,y) !(x %in% y) 
+`%notin%` <- function (x,y) !(x %in% y) 
+
 #
 # Data Imports
 # 
@@ -92,7 +93,6 @@ svmType     <- "C-classification"
 # 
 # SVM Models per Drug 
 # 
-
 
 # SVM 1 - CGC.11047  
 formula1    <- as.formula(paste("CGC.11047  ~ ", predictorGenes, sep=""))
