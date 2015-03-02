@@ -93,6 +93,35 @@ formula         <- as.formula(paste("Carboplatin ~ ", predictorGenes, sep=""))
 #  SVM Action
 # 
 
+# Run SVMs on Each Drug 
+
+generateModels  <- function (response, predictors, df, t = "C-classification", g = 0.1, c = 100, k = "linear") {
+    output <- list()
+    for (r in response) {
+        formula <- as.formula(paste(r, " ~ ", predictors, sep=""))
+        model   <- svm(formula, data = df, type = t, gamma = g, cost = c, kernel = k)   
+        output  <- c(output, model)
+    }
+    output
+}
+
+svmModels   <- generateModels(drugs, predictorGenes, trainingData)
+
+# checkModels     <- function (response, models, df) {
+#     for (model in models) {
+#         prediction <- predict(model, )
+#             p   <- predict(model, df)
+#             trainLinearError        <- sum(trainingData$Carboplatin - p) / length(p) * 100
+#             print(paste("Training Data SVM Linear Kernel Prediction Error:", decimals(abs(trainLinearError), 2), "%"))
+#     }    
+# }
+# 
+
+# 
+# svmCheck    <- checkModels(drugs, svmModels, trainingData)
+
+# checkModels <- function ()
+
 # # Generate SVM Models 
 linearModel             <- svm(formula, data = trainingData, type = "C-classification", gamma = 00.1, cost = 100, kernel = "linear")
 print(linearModel)
