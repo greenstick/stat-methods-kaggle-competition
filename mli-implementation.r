@@ -24,6 +24,8 @@ decimals            <- function (x, d) {
     x
 }
 
+#Not In function
+`%notin%` <- function(x,y) !(x %in% y) 
 #
 # Data Imports
 # 
@@ -42,6 +44,7 @@ expressionData      <- read.csv("data/expression.csv")
 
 # Format Data for MLInterfaces - See Tutorial Here: http://www.bioconductor.org/packages//2.7/bioc/manuals/MLInterfaces/man/MLInterfaces.pdf
 testedCellLines     <- (trainKey[1])$X
+predictCellLines <- c("HCC1187", "MCF7", "MDAMB361", "MDAMB231", "BT549", "X600MPE", "HCC1954", "SKBR3", "MCF10A", "MCF12A", "HCC3153", "MDAMB157", "LY2", "AU565")
 trainExpressionData <- list()
 testExpressionData  <- list()
 for (value in testedCellLines) {
@@ -59,14 +62,16 @@ testedCellLines.mod[4]<-paste("X", testedCellLines.mod[4],sep="") #changes 184A1
 
 #Extracting desired cell line columns out of expressionData
 trainExpressionData.mod<-expressionData[which(names(expressionData) %in% testedCellLines.mod)]
+testExpressionData.mod<-expressionData[which(names(expressionData) %notin% testedCellLines.mod)]
 
 #We need to reorder the columns according to trainKey
 trainExpressionData.mod.reorder<-trainExpressionData.mod[,testedCellLines]
+testExpressionData.mod.reorder<-testExpressionData.mod[, predictCellLines]
 
 # Mash Data Frames Together & Remove Duplicate Row Names From trainKey 
 trainingData        <- data.frame(cbind(trainKey[-1], t(as.data.frame(trainExpressionData.mod.reorder))))
 # And Testing Data - Naming Conventions (Not Sure if This Will Actually be Needed - Does MLInterfaces handle train/validate/test?)
-testingData         <- testExpressionData
+testingData         <- data.frame(t(as.data.frame(testExpressionData.mod.reorder)))
 
 #
 # Setup Parameters
@@ -89,7 +94,7 @@ svmType     <- "C-classification"
 # 
 
 # SVM 1 - CGC.11047  
-formula1    <- as.formula(paste("Carboplatin ~ ", predictorGenes, sep=""))
+formula1    <- as.formula(paste("CGC.11047 ~ ", predictorGenes, sep=""))
 model1      <- svm(formula1, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel)
 predict1    <- predict(model1, trainingData)
 error1      <- sum(trainingData$Carboplatin - (as.numeric(predict1) - 1)) / length(predict1) * 100
