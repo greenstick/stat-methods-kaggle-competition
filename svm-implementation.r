@@ -91,19 +91,20 @@ testingData         <- data.frame(t(as.data.frame(testExpressionData.mod.reorder
 #
 
 # SVM Parameters 
-svmCost     <- 3
-svmGamma    <- 0.1
+svmCost     <- 1
+svmGamma    <- 0.12
 svmKernel   <- "polynomial"
 svmDegree   <- 3
 svmType     <- "C-classification"
 svmCoef0    <- 2
-svmCross    <- 2
-nGenes      <- 1000
+svmCross    <- 1
+nStart      <- 1
+nGenes      <- 500
 
 # General Parameters
 drugs               <- gsub("-", ".", trainKeyTransposed$Drug) # Vector of Drug Names
 totalGeneCount      <- dim(as.data.frame(trainExpressionData))[1] # This is the Maximum Number of Predictors Possible
-genePredictorRange  <- 1:nGenes #Selects Genes Labeled X1 - X10 in Training Data Set - 100 genes, Trying not to Get Too Crazy
+genePredictorRange  <- nStart:(nStart + nGenes - 1) #Selects Genes Labeled X1 - X10 in Training Data Set - 100 genes, Trying not to Get Too Crazy
 predictorGenes      <- paste(paste("X", genePredictorRange, sep=""), collapse= " + ") #Creates Predictor String for Formula 
 print(genePredictorRange[2])
 
