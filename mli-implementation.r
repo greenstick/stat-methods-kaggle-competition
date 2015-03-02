@@ -98,7 +98,7 @@ svmType     <- "C-classification"
 formula1    <- as.formula(paste("CGC.11047  ~ ", predictorGenes, sep=""))
 model1      <- svm(formula1, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel)
 predict1    <- predict(model1, trainingData)
-error1      <- sum(trainingData$Carboplatin - (as.numeric(predict1) - 1)) / length(predict1) * 100
+error1      <- sum(trainingData$CGC.11047 - (as.numeric(predict1) - 1)) / length(predict1) * 100
 print(paste("SVM Model 1 - Drug: CGC.11047 - Kernel:", svmKernel, "- Prediction Error:", decimals(abs(error1), 2), "%"))
 
 # SVM 2 - Carboplatin    
@@ -112,70 +112,70 @@ print(paste("SVM Model 2 - Drug: Carboplatin - Kernel:", svmKernel, "- Predictio
 formula3    <- as.formula(paste("Cisplatin ~ ", predictorGenes, sep=""))
 model3      <- svm(formula3, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel)
 predict3    <- predict(model3, trainingData)
-error3      <- sum(trainingData$Carboplatin - (as.numeric(predict3) - 1)) / length(predict3) * 100
+error3      <- sum(trainingData$Cisplatin - (as.numeric(predict3) - 1)) / length(predict3) * 100
 print(paste("SVM Model 3 - Drug: Cisplatin - Kernel:", svmKernel, "- Prediction Error:", decimals(abs(error3), 2), "%"))
 
 # SVM 4 - GSK1070916  
 formula4    <- as.formula(paste("GSK1070916 ~ ", predictorGenes, sep=""))
 model4      <- svm(formula4, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel)
 predict4    <- predict(model4, trainingData)
-error4      <- sum(trainingData$Carboplatin - (as.numeric(predict4) - 1)) / length(predict4) * 100
+error4      <- sum(trainingData$GSK1070916 - (as.numeric(predict4) - 1)) / length(predict4) * 100
 print(paste("SVM Model 4 - Drug: GSK1070916 - Kernel:", svmKernel, "- Prediction Error:", decimals(abs(error4), 2), "%"))
 
 # SVM 5 - GSK1120212   
 formula5    <- as.formula(paste("GSK1120212 ~ ", predictorGenes, sep=""))
 model5      <- svm(formula5, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel)
 predict5    <- predict(model5, trainingData)
-error5      <- sum(trainingData$Carboplatin - (as.numeric(predict5) - 1)) / length(predict5) * 100
+error5      <- sum(trainingData$GSK1120212 - (as.numeric(predict5) - 1)) / length(predict5) * 100
 print(paste("SVM Model 5 - Drug: GSK1120212 - Kernel:", svmKernel, "- Prediction Error:", decimals(abs(error5), 2), "%"))
 
 # SVM 6 - GSK461364    
 formula6    <- as.formula(paste("GSK461364 ~ ", predictorGenes, sep=""))
 model6      <- svm(formula6, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel)
 predict6    <- predict(model6, trainingData)
-error6      <- sum(trainingData$Carboplatin - (as.numeric(predict6) - 1)) / length(predict6) * 100
+error6      <- sum(trainingData$GSK461364 - (as.numeric(predict6) - 1)) / length(predict6) * 100
 print(paste("SVM Model 6 - Drug: GSK461364 - Kernel:", svmKernel, "- Prediction Error:", decimals(abs(error6), 2), "%"))
 
 # SVM 7 - Geldanamycin   
 formula7    <- as.formula(paste("Geldanamycin ~ ", predictorGenes, sep=""))
 model7      <- svm(formula7, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel)
 predict7    <- predict(model7, trainingData)
-error7      <- sum(trainingData$Carboplatin - (as.numeric(predict7) - 1)) / length(predict7) * 100
+error7      <- sum(trainingData$Geldanamycin - (as.numeric(predict7) - 1)) / length(predict7) * 100
 print(paste("SVM Model 7 - Drug: Geldanamycin - Kernel:", svmKernel, "- Prediction Error:", decimals(abs(error7), 2), "%"))
 
 # SVM 8 - Oxaliplatin 
 formula8    <- as.formula(paste("Oxaliplatin ~ ", predictorGenes, sep=""))
 model8      <- svm(formula8, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel)
 predict8    <- predict(model8, trainingData)
-error8      <- sum(trainingData$Carboplatin - (as.numeric(predict8) - 1)) / length(predict8) * 100
+error8      <- sum(trainingData$Oxaliplatin - (as.numeric(predict8) - 1)) / length(predict8) * 100
 print(paste("SVM Model 8 - Drug: Oxaliplatin - Kernel:", svmKernel, "- Prediction Error:", decimals(abs(error8), 2), "%"))
 
 # SVM 9 - PF.3084014
 formula9    <- as.formula(paste("PF.3084014 ~ ", predictorGenes, sep=""))
 model9      <- svm(formula9, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel)
 predict9    <- predict(model9, trainingData)
-error9      <- sum(trainingData$Carboplatin - (as.numeric(predict9) - 1)) / length(predict9) * 100
+error9      <- sum(trainingData$PF.3084014 - (as.numeric(predict9) - 1)) / length(predict9) * 100
 print(paste("SVM Model 9 - Drug: PF.3084014 - Kernel:", svmKernel, "- Prediction Error:", decimals(abs(error9), 2), "%"))
 
 # SVM 10 - PF.3814735 
 formula10    <- as.formula(paste("PF.3814735 ~ ", predictorGenes, sep=""))
 model10      <- svm(formula10, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel)
 predict10    <- predict(model10, trainingData)
-error10      <- sum(trainingData$Carboplatin - (as.numeric(predict10) - 1)) / length(predict10) * 100
+error10      <- sum(trainingData$PF.3814735 - (as.numeric(predict10) - 1)) / length(predict10) * 100
 print(paste("SVM Model 10 - Drug: PF.3814735 - Kernel:", svmKernel, "- Prediction Error:", decimals(abs(error10), 2), "%"))
 
 # SVM 11 - PF.4691502 
 formula11    <- as.formula(paste("PF.4691502 ~ ", predictorGenes, sep=""))
 model11      <- svm(formula11, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel)
 predict11    <- predict(model11, trainingData)
-error11      <- sum(trainingData$Carboplatin - (as.numeric(predict11) - 1)) / length(predict11) * 100
+error11      <- sum(trainingData$PF.4691502 - (as.numeric(predict11) - 1)) / length(predict11) * 100
 print(paste("SVM Model 11 - Drug: PF.4691502 - Kernel:", svmKernel, "- Prediction Error:", decimals(abs(error11), 2), "%"))
 
 # SVM 12 - Paclitaxel
 formula12    <- as.formula(paste("Paclitaxel ~ ", predictorGenes, sep=""))
 model12      <- svm(formula12, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel)
 predict12    <- predict(model12, trainingData)
-error12      <- sum(trainingData$Carboplatin - (as.numeric(predict12) - 1)) / length(predict12) * 100
+error12      <- sum(trainingData$Paclitaxel - (as.numeric(predict12) - 1)) / length(predict12) * 100
 print(paste("SVM Model 12 - Drug: Paclitaxel - Kernel:", svmKernel, "- Prediction Error:", decimals(abs(error12), 2), "%"))
 
 
