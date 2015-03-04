@@ -86,27 +86,48 @@ trainingData        <- data.frame(cbind(trainKey[-1], t(as.data.frame(trainExpre
 # And Testing Data - Naming Conventions (Not Sure if This Will Actually be Needed - Does MLInterfaces handle train/validate/test?)
 testingData         <- data.frame(t(as.data.frame(testExpressionData.mod.reorder)))
 
+
+# Gathers high variance genes and targets and reassigns them to training data
+# variances           <- vector()
+# for (i in 1:ncol(trainingData)) {
+#     l               <- length(variances)
+#     cVar            <- as.numeric(var(trainingData[i]))
+#     variances       <- c(variances, cVar)
+# }
+# variances <- t(as.matrix(variances))
+# variances <- which(abs(variances) > 2)
+# dim(variances)
+# 
+# hvTrainingData <- trainingData[1:12]
+# 
+# for (val in variances) {
+#    hvTrainingData <- cbind(hvTrainingData, trainingData[val + 12])
+# }
+# 
+# trainingData <- hvTrainingData
+
 #
 # Setup Parameters
 #
 
 # SVM Parameters 
-svmCost     <- 1
-svmGamma    <- 0.12
+svmCost     <- 2
+svmGamma    <- 0.06
 svmKernel   <- "polynomial"
 svmDegree   <- 3
 svmType     <- "C-classification"
 svmCoef0    <- 2
 svmCross    <- 1
+nGenes      <- 600
+
+# Not necessary, but could be used with the nGenes parameter to capture a window of genes
 nStart      <- 1
-nGenes      <- 500
 
 # General Parameters
 drugs               <- gsub("-", ".", trainKeyTransposed$Drug) # Vector of Drug Names
 totalGeneCount      <- dim(as.data.frame(trainExpressionData))[1] # This is the Maximum Number of Predictors Possible
 genePredictorRange  <- nStart:(nStart + nGenes - 1) #Selects Genes Labeled X1 - X10 in Training Data Set - 100 genes, Trying not to Get Too Crazy
 predictorGenes      <- paste(paste("X", genePredictorRange, sep=""), collapse= " + ") #Creates Predictor String for Formula 
-print(genePredictorRange[2])
 
 # 
 # SVM Models per Drug 
