@@ -88,46 +88,51 @@ testingData         <- data.frame(t(as.data.frame(testExpressionData.mod.reorder
 
 
 # Gathers high variance genes and targets and reassigns them to training data
-# variances           <- vector()
-# for (i in 1:ncol(trainingData)) {
-#     l               <- length(variances)
-#     cVar            <- as.numeric(var(trainingData[i]))
-#     variances       <- c(variances, cVar)
-# }
-# variances <- t(as.matrix(variances))
-# variances <- which(abs(variances) > 2)
-# dim(variances)
-# 
-# hvTrainingData <- trainingData[1:12]
-# 
-# for (val in variances) {
-#    hvTrainingData <- cbind(hvTrainingData, trainingData[val + 12])
-# }
-# 
-# trainingData <- hvTrainingData
+getByVariance       <- function (df, vThreshold = 2, geneStartColumn = 1) {
+    v           <- vector()
+    for (i in 1:ncol(trainingData)) {
+        l               <- length(v)
+        cVar            <- as.numeric(var(trainingData[i]))
+        v               <- c(v, cVar)
+    }
+    v <- which(abs(t(as.matrix(v))) > vThreshold)
+    v 
+}
 
 #
 # Setup Parameters
 #
 
 # SVM Parameters 
-svmCost     <- 2
-svmGamma    <- 0.06
+svmCost     <- 1.2
+svmGamma    <- 0.8
 svmKernel   <- "polynomial"
 svmDegree   <- 3
 svmType     <- "C-classification"
-svmCoef0    <- 2
-svmCross    <- 1
-nGenes      <- 600
+svmCoef0    <- 1
+svmCross    <- 2
 
-# Not necessary, but could be used with the nGenes parameter to capture a window of genes
+# Select on High Variance Genes
+selectVar   <- TRUE
+varThresh   <- 2
+
+# If selectVar == FALSE, Use nGenes Selection Criteria
 nStart      <- 1
+nGenes      <- 600
 
 # General Parameters
 drugs               <- gsub("-", ".", trainKeyTransposed$Drug) # Vector of Drug Names
 totalGeneCount      <- dim(as.data.frame(trainExpressionData))[1] # This is the Maximum Number of Predictors Possible
 genePredictorRange  <- nStart:(nStart + nGenes - 1) #Selects Genes Labeled X1 - X10 in Training Data Set - 100 genes, Trying not to Get Too Crazy
-predictorGenes      <- paste(paste("X", genePredictorRange, sep=""), collapse= " + ") #Creates Predictor String for Formula 
+
+if (selectVar == TRUE) {
+    highVariance    <- getByVariance(trainingData, 5, 12)
+    nGenes          <- length(highVariance)
+    predictorGenes  <- paste(paste("X", highVariance, sep=""), collapse= " + ") #Creates Predictor String for Formula 
+} else {
+    predictorGenes  <- paste(paste("X", genePredictorRange, sep=""), collapse= " + ") #Creates Predictor String for Formula     
+}
+
 
 # 
 # SVM Models per Drug 
@@ -247,6 +252,6 @@ ids          <- seq(1, length(values), 1)
 subdf        <- data.frame(id=as.matrix(ids), value=as.matrix(values))
 submission   <- data.frame(lapply(subdf, as.character), stringsAsFactors=FALSE)
 print(submission)
-filename     <- paste("submissions/svm/genes_", nGenes, "_kernel_", svmKernel, "_cost_", svmCost, "_gamma_", svmGamma, "_degree_", svmDegree, "_coef0_", svmCoef0, "_cross_", svmCross, ".csv", sep="")
+filename     <- paste("submissions/svm/genes_", nGenes, "_varianceSelect_", selectVar , "_kernel_", svmKernel, "_cost_", svmCost, "_gamma_", svmGamma, "_degree_", svmDegree, "_coef0_", svmCoef0, "_cross_", svmCross, ".csv", sep="")
 write.csv(submission, file=filename, row.names = FALSE)
 
