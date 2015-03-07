@@ -1,5 +1,28 @@
 #!/usr/bin/env Rscript
 
+#
+# Setup
+#
+
+print("Status: Setup")
+
+# Installations
+source("http://bioconductor.org/biocLite.R")
+# biocLite("MLInterfaces")
+# install.packages("MLInterfaces")
+# install.packages('randomForest')
+# install.packages("ROCR")
+library(ROCR)
+
+# Get Session Information
+# sessionInfo()
+
+# Set Directory
+setwd("~/Documents/Education/Graduate/OHSU/Courses/Winter 2015/Statistical Methods/assignments/project1/src") 
+
+# Set Seed
+set.seed(1337)
+
 # 
 # Some Utility Functions
 # 
@@ -41,6 +64,22 @@ getTestData         <- function (data, classNames, class) {
     l
 }
 
+# Subsets matrix by columns by quantiles
+getByQuantile   <- function (m, lowerCutoff = 0.25, upperCutoff = 0.75) {
+    q           <- quantile(m, probs = c(lowerCutoff, upperCutoff))
+    columns     <- apply(m, 2, function (x) any(x < q[1] | x > q[2]))
+    m           <- m[ ,columns]
+    m
+}
+
+# Subsets matrix by variance cutoff
+getByVariance   <- function (m, minVariance) {
+    columns     <- apply(m, 2, function (x) any(var(x) > minVariance))
+    m           <- m[ ,columns]
+    output      <- list(matrix = m, columns = columns)
+    output
+}
+
 # Generates a Numeric Vector of Length n With a Specified Value or Random Values (default behavior)
 generateVector      <- function (n, value = FALSE, lower = -0.5, upper = 0.5) {
     if (is.numeric(value == FALSE)) {
@@ -53,6 +92,16 @@ generateVector      <- function (n, value = FALSE, lower = -0.5, upper = 0.5) {
     }
     v
 }
+
+# How Mayn Decimals?
+decimals            <- function (x, d) {
+    x <- format(round(x, d), nsmall = d)
+    x
+}
+
+# 
+# Learning Kernels
+# 
 
 # Signum function -- Ensures Proper Evaluation of 0 Input 
 signum              <- function (x) {
@@ -67,10 +116,9 @@ sigmoid             <- function (x) {
     x
 }
 
-# How Mayn Decimals?
-decimals            <- function (x, d) {
-    x <- format(round(x, d), nsmall = d)
-    x
+# Fast Sigmoid Approximation
+fSigmoid            <- function (x) {
+    x <- x / (1 + abs(x))
 }
 
 # 
@@ -191,7 +239,7 @@ ANN.train <- function (epochs = 2, inputTrainingData, trainingTargets, etaP = 0.
         print("-- Training Complete     ----------------")
         print("=========================================") 
         print("-- Report -------------------------------")
-        print("   Rounded Hits:")
+        print("   Rounded Hits Last Epoch:")
         print(paste("       Train Hits / Total:     ", hit, "/", grand))
         print(paste("       Train Hit Percent:      ", decimals((hit/grand) * 100, 2))) 
     }
@@ -276,10 +324,12 @@ ANN.classify <- function (inputTestData, testTargets = vector(), calibratedWeigh
     print("-- Classifications Complete -------------")
     print("=========================================")
     if (verboseClassify == FALSE) {
-        print("-- Report -------------------------------")
-        print("   Rounded Hits:")
-        print(paste("       Test Hits / Total:     ", testHit, "/", testGrand))
-        print(paste("       Test Hit Percent:      ", decimals((testHit/testGrand) * 100, 2)))
+        if (length(testTargets > 0)) {
+            print("-- Report -------------------------------")
+            print("   Rounded Hits:")
+            print(paste("       Test Hits / Total:     ", testHit, "/", testGrand))
+            print(paste("       Test Hit Percent:      ", decimals((testHit/testGrand) * 100, 2)))
+        }
     }
     # Return Results
     list (
@@ -291,26 +341,15 @@ ANN.classify <- function (inputTestData, testTargets = vector(), calibratedWeigh
     )
 }
 
-
-#
-# Setup
-#
-
-# Installations
-# source("http://bioconductor.org/biocLite.R")
-# biocLite("made4")
-# install.packages("e1071") 
-
-# Imports
-setwd("~/Documents/Education/Graduate/OHSU/Courses/Winter 2015/Statistical Methods/assignments/project1/src") 
-
+# 
+# Import Data
+# 
 
 subtypeData         <- read.csv("data/subtype.csv")
 mapData             <- read.csv("data/scoring_and_test_set_id_mappings.csv")
 trainKey            <- read.csv("data/training_set_answers.csv")
 trainKeyTransposed  <- read.csv("data/training_set_answers_transposed.csv")
 expressionData      <- read.csv("data/expression.csv")
-
 
 # 
 # Data Wrangling
@@ -352,410 +391,118 @@ testingData         <- data.frame(t(as.data.frame(testExpressionData.mod.reorder
 # Remove Row & Column Names & Convert to Matrix
 names(trainExpressionData.mod.reorder)  <- NULL
 names(testExpressionData.mod.reorder)   <- NULL
-trainingData        <- t(data.matrix(trainExpressionData.mod.reorder))[-1,]
+trainingData        <- t(data.matrix(trainExpressionData.mod.reorder))
 testingData         <- t(data.matrix(testExpressionData.mod.reorder))
 
 # 
 # Setup Parameters
 # 
 
-# Sample Size to Use for Training & Testing
+# Standard Sample Selection
 SampleSize          <- 40
-Epochs              <- 10000
+Epochs              <- 5000
 EtaP                <- 0.2
-EtaH                <- 0.2
-HiddenNodes         <- 12
+EtaH                <- 0.4
+HiddenNodes         <- 200
 DWeightLimit        <- 0.5
 HWeightLimit        <- 0.5
+
+# High Variance Sample Selection
+HighVariance        <- TRUE
+MinVariance         <- 1
+HiddenNodeRatio     <- 0.08
+PlotTrainROC        <- TRUE
+
 # 
-# Final Data Setup
+# Additional Setup
+# 
+
+drugs               <- gsub("-", ".", trainKeyTransposed$Drug)
+nDrugs              <- length(drugs)
+tPredictions        <- list()
+tSubset             <- vector()
+
+# 
+# Final Data Formatting
 # 
 
 # Create Training Subset & Add Bias Terms
 trainingDim         <- dim(trainingData)
 trainBiasTerms      <- generateVector(trainingDim[1], 1)
-trainingSubset      <- cbind(trainBiasTerms, trainingData[1:trainingDim[1],1:SampleSize])
+if (HighVariance == TRUE) {
+    tSubset         <- getByVariance(trainingData, MinVariance)
+    hvTrainData     <- tSubset$matrix
+    trainingSubset  <- cbind(trainBiasTerms, hvTrainData)
+    trDim           <- dim(trainingSubset)
+    HiddenNodes     <- round(trDim[2] * HiddenNodeRatio)
+    SampleSize      <- trDim[2]
+} else {
+    trainingSubset  <- cbind(trainBiasTerms, trainingData[1:trainingDim[1],1:SampleSize])
+}
+colnames(trainingSubset) <- NULL
 
 # Create Testing Subset & Add Bias Terms
 testingDim          <- dim(testingData)
 testBiasTerms       <- generateVector(testingDim[1], 1)
-testingSubset       <- cbind(testBiasTerms, testingData[1:testingDim[1], 1:SampleSize])
+if (HighVariance == TRUE) {
+    hvTestData      <- testingData[ ,tSubset$columns]
+    testingSubset   <- cbind(testBiasTerms, hvTestData)
 
-# ANN 1 - CGC.11047  
-computedValues1 <- ANN.train (
-    epochs              = Epochs,
-    inputTrainingData   = trainingSubset,
-    trainingTargets     = trainKey$CGC.11047,
-    etaP                = EtaP, 
-    etaH                = EtaH, 
-    hiddenNodes         = HiddenNodes, 
-    dataWeightsLimit    = DWeightLimit, 
-    hiddenWeightsLimit  = HWeightLimit, 
-    plotData            = list(
-        SSE                 = FALSE,
-        distance            = FALSE,
-        weightMeans         = list(
-            plot                = FALSE,
-            lables              = ""
-        )
-    ),
-    verboseTrain        = FALSE
-)
+} else {
+    testingSubset   <- cbind(testBiasTerms, testingData[1:testingDim[1], 1:SampleSize])
+}
+colnames(testingSubset) <- NULL
 
-# Classify Test Data 
-tPredict1 <- ANN.classify (
-    inputTestData       = testingSubset, 
-    calibratedWeights   = computedValues1$trainedWeights, 
-    calibratedHidden    = computedValues1$trainedHidden,
-    verboseClassify     = TRUE
-)
+# 
+# Classifications & Predictions
+# 
 
-
-
-# ANN 2 - Carboplatin
-computedValues2 <- ANN.train (
-    epochs              = Epochs,
-    inputTrainingData   = trainingSubset,
-    trainingTargets     = trainKey$Carboplatin,
-    etaP                = EtaP, 
-    etaH                = EtaH, 
-    hiddenNodes         = HiddenNodes, 
-    dataWeightsLimit    = DWeightLimit, 
-    hiddenWeightsLimit  = HWeightLimit, 
-    plotData            = list(
-        SSE                 = FALSE,
-        distance            = FALSE,
-        weightMeans         = list(
-            plot                = FALSE,
-            lables              = ""
-        )
-    ),
-    verboseTrain        = FALSE
-)
-
-# Classify Test Data 
-tPredict2 <- ANN.classify (
-    inputTestData       = testingSubset, 
-    calibratedWeights   = computedValues2$trainedWeights, 
-    calibratedHidden    = computedValues2$trainedHidden,
-    verboseClassify     = TRUE
-)
-
-
-# ANN 3 - Cisplatin 
-computedValues3 <- ANN.train (
-    epochs              = Epochs,
-    inputTrainingData   = trainingSubset,
-    trainingTargets     = trainKey$Cisplatin,
-    etaP                = EtaP, 
-    etaH                = EtaH, 
-    hiddenNodes         = HiddenNodes, 
-    dataWeightsLimit    = DWeightLimit, 
-    hiddenWeightsLimit  = HWeightLimit, 
-    plotData            = list(
-        SSE                 = FALSE,
-        distance            = FALSE,
-        weightMeans         = list(
-            plot                = FALSE,
-            lables              = ""
-        )
-    ),
-    verboseTrain        = FALSE
-)
-
-# Classify Test Data 
-tPredict3 <- ANN.classify (
-    inputTestData       = testingSubset, 
-    calibratedWeights   = computedValues3$trainedWeights, 
-    calibratedHidden    = computedValues3$trainedHidden,
-    verboseClassify     = TRUE
-)
-
-
-
-# ANN 4 - GSK1070916 
-computedValues4 <- ANN.train (
-    epochs              = Epochs,
-    inputTrainingData   = trainingSubset,
-    trainingTargets     = trainKey$GSK1070916,
-    etaP                = EtaP, 
-    etaH                = EtaH, 
-    hiddenNodes         = HiddenNodes, 
-    dataWeightsLimit    = DWeightLimit, 
-    hiddenWeightsLimit  = HWeightLimit, 
-    plotData            = list(
-        SSE                 = FALSE,
-        distance            = FALSE,
-        weightMeans         = list(
-            plot                = FALSE,
-            lables              = ""
-        )
-    ),
-    verboseTrain        = FALSE
-)
-
-# Classify Test Data 
-tPredict4 <- ANN.classify (
-    inputTestData       = testingSubset, 
-    calibratedWeights   = computedValues4$trainedWeights, 
-    calibratedHidden    = computedValues4$trainedHidden,
-    verboseClassify     = TRUE
-)
-
-
-
-# ANN 5 - GSK1120212  
-computedValues5 <- ANN.train (
-    epochs              = Epochs,
-    inputTrainingData   = trainingSubset,
-    trainingTargets     = trainKey$GSK1120212,
-    etaP                = EtaP, 
-    etaH                = EtaH, 
-    hiddenNodes         = HiddenNodes, 
-    dataWeightsLimit    = DWeightLimit, 
-    hiddenWeightsLimit  = HWeightLimit, 
-    plotData            = list(
-        SSE                 = FALSE,
-        distance            = FALSE,
-        weightMeans         = list(
-            plot                = FALSE,
-            lables              = ""
-        )
-    ),
-    verboseTrain        = FALSE
-)
-
-# Classify Test Data 
-tPredict5 <- ANN.classify (
-    inputTestData       = testingSubset, 
-    calibratedWeights   = computedValues5$trainedWeights, 
-    calibratedHidden    = computedValues5$trainedHidden,
-    verboseClassify     = TRUE
-)
-
-
-
-# ANN 6 - GSK461364  
-computedValues6 <- ANN.train (
-    epochs              = Epochs,
-    inputTrainingData   = trainingSubset,
-    trainingTargets     = trainKey$GSK461364,
-    etaP                = EtaP, 
-    etaH                = EtaH, 
-    hiddenNodes         = HiddenNodes, 
-    dataWeightsLimit    = DWeightLimit, 
-    hiddenWeightsLimit  = HWeightLimit, 
-    plotData            = list(
-        SSE                 = FALSE,
-        distance            = FALSE,
-        weightMeans         = list(
-            plot                = FALSE,
-            lables              = ""
-        )
-    ),
-    verboseTrain        = FALSE
-)
-
-# Classify Test Data 
-tPredict6 <- ANN.classify (
-    inputTestData       = testingSubset, 
-    calibratedWeights   = computedValues6$trainedWeights, 
-    calibratedHidden    = computedValues6$trainedHidden,
-    verboseClassify     = TRUE
-)
-
-
-
-# ANN 7 - Geldanamycin  
-computedValues7 <- ANN.train (
-    epochs              = Epochs,
-    inputTrainingData   = trainingSubset,
-    trainingTargets     = trainKey$Geldanamycin,
-    etaP                = EtaP, 
-    etaH                = EtaH, 
-    hiddenNodes         = HiddenNodes, 
-    dataWeightsLimit    = DWeightLimit, 
-    hiddenWeightsLimit  = HWeightLimit, 
-    plotData            = list(
-        SSE                 = FALSE,
-        distance            = FALSE,
-        weightMeans         = list(
-            plot                = FALSE,
-            lables              = ""
-        )
-    ),
-    verboseTrain        = FALSE
-)
-
-# Classify Test Data 
-tPredict7 <- ANN.classify (
-    inputTestData       = testingSubset, 
-    calibratedWeights   = computedValues7$trainedWeights, 
-    calibratedHidden    = computedValues7$trainedHidden,
-    verboseClassify     = TRUE
-)
-
-
-
-# ANN 8 - Oxaliplatin  
-computedValues8 <- ANN.train (
-    epochs              = Epochs,
-    inputTrainingData   = trainingSubset,
-    trainingTargets     = trainKey$Oxaliplatin,
-    etaP                = EtaP, 
-    etaH                = EtaH, 
-    hiddenNodes         = HiddenNodes, 
-    dataWeightsLimit    = DWeightLimit, 
-    hiddenWeightsLimit  = HWeightLimit, 
-    plotData            = list(
-        SSE                 = FALSE,
-        distance            = FALSE,
-        weightMeans         = list(
-            plot                = FALSE,
-            lables              = ""
-        )
-    ),
-    verboseTrain        = FALSE
-)
-
-# Classify Test Data 
-tPredict8 <- ANN.classify (
-    inputTestData       = testingSubset, 
-    calibratedWeights   = computedValues8$trainedWeights, 
-    calibratedHidden    = computedValues8$trainedHidden,
-    verboseClassify     = TRUE
-)
-
-
-
-# ANN 9 - PF.3084014  
-computedValues9 <- ANN.train (
-    epochs              = Epochs,
-    inputTrainingData   = trainingSubset,
-    trainingTargets     = trainKey$PF.3084014,
-    etaP                = EtaP, 
-    etaH                = EtaH, 
-    hiddenNodes         = HiddenNodes, 
-    dataWeightsLimit    = DWeightLimit, 
-    hiddenWeightsLimit  = HWeightLimit, 
-    plotData            = list(
-        SSE                 = FALSE,
-        distance            = FALSE,
-        weightMeans         = list(
-            plot                = FALSE,
-            lables              = ""
-        )
-    ),
-    verboseTrain        = FALSE
-)
-
-# Classify Test Data 
-tPredict9 <- ANN.classify (
-    inputTestData       = testingSubset, 
-    calibratedWeights   = computedValues9$trainedWeights, 
-    calibratedHidden    = computedValues9$trainedHidden,
-    verboseClassify     = TRUE
-)
-
-
-
-# ANN 10 - PF.3814735  
-computedValues10 <- ANN.train (
-    epochs              = Epochs,
-    inputTrainingData   = trainingSubset,
-    trainingTargets     = trainKey$PF.3814735,
-    etaP                = EtaP, 
-    etaH                = EtaH, 
-    hiddenNodes         = HiddenNodes, 
-    dataWeightsLimit    = DWeightLimit, 
-    hiddenWeightsLimit  = HWeightLimit, 
-    plotData            = list(
-        SSE                 = FALSE,
-        distance            = FALSE,
-        weightMeans         = list(
-            plot                = FALSE,
-            lables              = ""
-        )
-    ),
-    verboseTrain        = FALSE
-)
-
-# Classify Test Data 
-tPredict10 <- ANN.classify (
-    inputTestData       = testingSubset, 
-    calibratedWeights   = computedValues10$trainedWeights, 
-    calibratedHidden    = computedValues10$trainedHidden,
-    verboseClassify     = TRUE
-)
-
-
-
-# ANN 11 - PF.4691502  
-computedValues11 <- ANN.train (
-    epochs              = Epochs,
-    inputTrainingData   = trainingSubset,
-    trainingTargets     = trainKey$PF.4691502,
-    etaP                = EtaP, 
-    etaH                = EtaH, 
-    hiddenNodes         = HiddenNodes, 
-    dataWeightsLimit    = DWeightLimit, 
-    hiddenWeightsLimit  = HWeightLimit, 
-    plotData            = list(
-        SSE                 = FALSE,
-        distance            = FALSE,
-        weightMeans         = list(
-            plot                = FALSE,
-            lables              = ""
-        )
-    ),
-    verboseTrain        = FALSE
-)
-
-# Classify Test Data 
-tPredict11 <- ANN.classify (
-    inputTestData       = testingSubset, 
-    calibratedWeights   = computedValues11$trainedWeights, 
-    calibratedHidden    = computedValues11$trainedHidden,
-    verboseClassify     = TRUE
-)
-
-
-
-# ANN 12 - Paclitaxel
-computedValues12 <- ANN.train (
-    epochs              = Epochs,
-    inputTrainingData   = trainingSubset,
-    trainingTargets     = trainKey$Paclitaxel,
-    etaP                = EtaP, 
-    etaH                = EtaH, 
-    hiddenNodes         = HiddenNodes, 
-    dataWeightsLimit    = DWeightLimit, 
-    hiddenWeightsLimit  = HWeightLimit, 
-    plotData            = list(
-        SSE                 = FALSE,
-        distance            = FALSE,
-        weightMeans         = list(
-            plot                = FALSE,
-            lables              = ""
-        )
-    ),
-    verboseTrain        = FALSE
-)
- 
-tPredict12 <- ANN.classify (
-    inputTestData       = testingSubset, 
-    calibratedWeights   = computedValues12$trainedWeights, 
-    calibratedHidden    = computedValues12$trainedHidden,
-    verboseClassify     = TRUE
-)
+for (i in 1:nDrugs) {
+    print(paste("Drug ", i, ": ", drugs[i]), sep="")
+    knownClasses    <- vector()
+    for (known in trainKey[drugs[i]][,1]) knownClasses<- c(knownClasses, as.numeric(known))
+    # Train Data
+    computedValues  <- ANN.train (
+        epochs              = Epochs,
+        inputTrainingData   = trainingSubset,
+        trainingTargets     = trainKey[drugs[i]][,1],
+        etaP                = EtaP, 
+        etaH                = EtaH, 
+        hiddenNodes         = HiddenNodes, 
+        dataWeightsLimit    = DWeightLimit, 
+        hiddenWeightsLimit  = HWeightLimit, 
+        plotData            = list(
+            SSE                 = FALSE,
+            distance            = FALSE,
+            weightMeans         = list(
+                plot                = FALSE,
+                lables              = ""
+            )
+        ),
+        verboseTrain        = FALSE
+    )
+    # Plot Training ROC
+    if (PlotTrainROC == TRUE) {
+        AUC             <- prediction(computedValues$classifications, knownClasses)
+        AUCPerf         <- performance(AUC, "tpr", "fpr")
+        plot(AUCPerf)
+    }
+    # Classify Test Data 
+    tPredict        <- ANN.classify (
+        inputTestData       = testingSubset, 
+        calibratedWeights   = computedValues$trainedWeights, 
+        calibratedHidden    = computedValues$trainedHidden,
+        verboseClassify     = FALSE
+    )
+    # Test Predictions
+    tPredictions    <- cbind(tPredictions, p = list(tPredict$classes))
+}
 
 #
 # Wrangle Output & Save Predictions to CSV
 #
 
 print("Status: Generating Output File")
-
-tPredictions <- list(tPredict1$classes, tPredict2$classes, tPredict3$classes, tPredict4$classes, tPredict5$classes, tPredict6$classes, tPredict7$classes, tPredict8$classes, tPredict9$classes, tPredict10$classes, tPredict11$classes, tPredict12$classes)
 subTop       <- list()
 subBottom    <- list()
 for (col in tPredictions) {

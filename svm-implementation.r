@@ -7,17 +7,21 @@
 print("Status: Setup")
 
 # Installations
-# source("http://bioconductor.org/biocLite.R")
+source("http://bioconductor.org/biocLite.R")
 # biocLite("MLInterfaces")
 # install.packages("MLInterfaces")
 # install.packages('randomForest')
+# install.packages("ROCR")
 # library("MASS")
-library(MLInterfaces)
-library(randomForest)
+library(ROCR)
 library(e1071)
 
+# Get Session Information
+# sessionInfo()
+
+# Set Directory
 setwd("~/Documents/Education/Graduate/OHSU/Courses/Winter 2015/Statistical Methods/assignments/project1/src") 
-# browseVignettes("MLInterfaces")
+
 # 
 # Utility Functions
 # 
@@ -144,14 +148,14 @@ print("Status: Loading parameters . . .")
 svmCost     <- 2
 svmGamma    <- 0.078
 svmKernel   <- "polynomial"
-svmDegree   <- 3
+svmDegree   <- 20
 svmType     <- "C-classification"
 svmCoef0    <- 2.8
 svmCross    <- 2
 
 # Select on High Variance Genes
 selectVar   <- FALSE
-varThresh   <- 2.3
+varThresh   <- 8
 absValVar   <- TRUE
 aboveThresh <- TRUE
 
@@ -166,6 +170,7 @@ nGenes      <- 1000
 
 # General Parameters
 drugs               <- gsub("-", ".", trainKeyTransposed$Drug) # Vector of Drug Names
+nDrugs              <- length(drugs)
 totalGeneCount      <- dim(as.data.frame(trainExpressionData))[1] # This is the Maximum Number of Predictors Possible
 genePredictorRange  <- nStart:(nStart + nGenes - 1) #Selects Genes Labeled X1 - X10 in Training Data Set - 100 genes, Trying not to Get Too Crazy
 
@@ -184,107 +189,25 @@ if (selectVar == TRUE) {
 print("Status: Done")
 
 # 
-# SVM Models per Drug 
+# Run SVM Models per Drug 
 # 
 
 print(paste("Status: Generating SVM Models & Predicting Using", nGenes, "Genes. . ."))
-
-# SVM 1 - CGC.11047  
-formula1    <- as.formula(paste("CGC.11047  ~ ", predictorGenes, sep=""))
-model1      <- svm(formula1, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
-predict1    <- predict(model1, trainingData)
-error1      <- sum(trainingData$CGC.11047 - (as.numeric(predict1) - 1)) / length(predict1) * 100
-print(paste("SVM Model 1    Drug: CGC.11047     Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error1), 2), "%"))
-tPredict1   <- as.numeric(predict(model1, testingData)) - 1
-
-# SVM 2 - Carboplatin    
-formula2    <- as.formula(paste("Carboplatin ~ ", predictorGenes, sep=""))
-model2      <- svm(formula2, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
-predict2    <- predict(model2, trainingData)
-error2      <- sum(trainingData$Carboplatin - (as.numeric(predict2) - 1)) / length(predict2) * 100
-print(paste("SVM Model 2    Drug: Carboplatin   Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error2), 2), "%"))
-tPredict2   <- as.numeric(predict(model2, testingData)) - 1
-
-# SVM 3 - Cisplatin    
-formula3    <- as.formula(paste("Cisplatin ~ ", predictorGenes, sep=""))
-model3      <- svm(formula3, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
-predict3    <- predict(model3, trainingData)
-error3      <- sum(trainingData$Cisplatin - (as.numeric(predict3) - 1)) / length(predict3) * 100
-print(paste("SVM Model 3    Drug: Cisplatin     Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error3), 2), "%"))
-tPredict3   <- as.numeric(predict(model3, testingData)) - 1
-
-# SVM 4 - GSK1070916  
-formula4    <- as.formula(paste("GSK1070916 ~ ", predictorGenes, sep=""))
-model4      <- svm(formula4, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
-predict4    <- predict(model4, trainingData)
-error4      <- sum(trainingData$GSK1070916 - (as.numeric(predict4) - 1)) / length(predict4) * 100
-print(paste("SVM Model 4    Drug: GSK1070916    Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error4), 2), "%"))
-tPredict4   <- as.numeric(predict(model4, testingData)) - 1
-
-# SVM 5 - GSK1120212   
-formula5    <- as.formula(paste("GSK1120212 ~ ", predictorGenes, sep=""))
-model5      <- svm(formula5, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
-predict5    <- predict(model5, trainingData)
-error5      <- sum(trainingData$GSK1120212 - (as.numeric(predict5) - 1)) / length(predict5) * 100
-print(paste("SVM Model 5    Drug: GSK1120212    Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error5), 2), "%"))
-tPredict5   <- as.numeric(predict(model5, testingData)) - 1
-
-# SVM 6 - GSK461364    
-formula6    <- as.formula(paste("GSK461364 ~ ", predictorGenes, sep=""))
-model6      <- svm(formula6, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
-predict6    <- predict(model6, trainingData)
-error6      <- sum(trainingData$GSK461364 - (as.numeric(predict6) - 1)) / length(predict6) * 100
-print(paste("SVM Model 6    Drug: GSK461364     Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error6), 2), "%"))
-tPredict6   <- as.numeric(predict(model6, testingData)) - 1
-
-# SVM 7 - Geldanamycin   
-formula7    <- as.formula(paste("Geldanamycin ~ ", predictorGenes, sep=""))
-model7      <- svm(formula7, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
-predict7    <- predict(model7, trainingData)
-error7      <- sum(trainingData$Geldanamycin - (as.numeric(predict7) - 1)) / length(predict7) * 100
-print(paste("SVM Model 7    Drug: Geldanamycin  Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error7), 2), "%"))
-tPredict7   <- as.numeric(predict(model7, testingData)) - 1
-
-# SVM 8 - Oxaliplatin 
-formula8    <- as.formula(paste("Oxaliplatin ~ ", predictorGenes, sep=""))
-model8      <- svm(formula8, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
-predict8    <- predict(model8, trainingData)
-error8      <- sum(trainingData$Oxaliplatin - (as.numeric(predict8) - 1)) / length(predict8) * 100
-print(paste("SVM Model 8    Drug: Oxaliplatin   Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error8), 2), "%"))
-tPredict8   <- as.numeric(predict(model8, testingData)) - 1
-
-# SVM 9 - PF.3084014
-formula9    <- as.formula(paste("PF.3084014 ~ ", predictorGenes, sep=""))
-model9      <- svm(formula9, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
-predict9    <- predict(model9, trainingData)
-error9      <- sum(trainingData$PF.3084014 - (as.numeric(predict9) - 1)) / length(predict9) * 100
-print(paste("SVM Model 9    Drug: PF.3084014    Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error9), 2), "%"))
-tPredict9   <- as.numeric(predict(model9, testingData)) - 1
-
-# SVM 10 - PF.3814735 
-formula10    <- as.formula(paste("PF.3814735 ~ ", predictorGenes, sep=""))
-model10      <- svm(formula10, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
-predict10    <- predict(model10, trainingData)
-error10      <- sum(trainingData$PF.3814735 - (as.numeric(predict10) - 1)) / length(predict10) * 100
-print(paste("SVM Model 10   Drug: PF.3814735    Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error10), 2), "%"))
-tPredict10   <- as.numeric(predict(model10, testingData)) - 1
-
-# SVM 11 - PF.4691502 
-formula11    <- as.formula(paste("PF.4691502 ~ ", predictorGenes, sep=""))
-model11      <- svm(formula11, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
-predict11    <- predict(model11, trainingData)
-error11      <- sum(trainingData$PF.4691502 - (as.numeric(predict11) - 1)) / length(predict11) * 100
-print(paste("SVM Model 11   Drug: PF.4691502    Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error11), 2), "%"))
-tPredict11   <- as.numeric(predict(model11, testingData)) - 1
-
-# SVM 12 - Paclitaxel
-formula12    <- as.formula(paste("Paclitaxel ~ ", predictorGenes, sep=""))
-model12      <- svm(formula12, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
-predict12    <- predict(model12, trainingData)
-error12      <- sum(trainingData$Paclitaxel - (as.numeric(predict12) - 1)) / length(predict12) * 100
-print(paste("SVM Model 12   Drug: Paclitaxel    Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error12), 2), "%"))
-tPredict12   <- as.numeric(predict(model12, testingData)) - 1
-
+tPredictions        <- list()
+for (i in 1:nDrugs) {
+    knownClasses    <- vector()
+    for (known in trainingData[drugs[i]]) knownClasses<- c(knownClasses, as.numeric(known))
+    formula         <- as.formula(paste(drugs[i], " ~ ", predictorGenes, sep=""))
+    model           <- svm(formula, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
+    predict         <- as.numeric(predict(model, trainingData)) - 1
+    error           <- sum(trainingData[drugs[i]] - predict) / length(predict) * 100
+    print(paste("SVM Model", i, "   Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error), 2), "%     Drug:", drugs[i]))
+    tPredicted      <- as.numeric(predict(model, testingData)) - 1
+    tPredictions    <- cbind(tPredictions, tPredicted)
+    AUC             <- prediction(predict, knownClasses)
+    AUCPerf         <- performance(AUC, "tpr", "fpr")
+    # plot(AUCPerf)
+}
 print("Status: Done")
 
 #
@@ -292,8 +215,6 @@ print("Status: Done")
 #
 
 print("Status: Generating Output File")
-
-tPredictions <- list(tPredict1, tPredict2, tPredict3, tPredict4, tPredict5, tPredict6, tPredict7, tPredict8, tPredict9, tPredict10, tPredict11, tPredict12)
 subTop       <- list()
 subBottom    <- list()
 for (col in tPredictions) {
