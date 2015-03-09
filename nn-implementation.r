@@ -64,6 +64,12 @@ getTestData         <- function (data, classNames, class) {
     l
 }
 
+# Coefficient of Variation
+cv                  <- function (x) {
+    y <- 100 * (sd(x, na.rm=TRUE) / mean(x, na.rm=TRUE)) 
+    y
+}
+
 # Subsets matrix by columns by quantiles
 getByQuantile   <- function (m, lowerCutoff = 0.25, upperCutoff = 0.75) {
     q           <- quantile(m, probs = c(lowerCutoff, upperCutoff))
@@ -73,8 +79,8 @@ getByQuantile   <- function (m, lowerCutoff = 0.25, upperCutoff = 0.75) {
 }
 
 # Subsets matrix by variance cutoff
-getByVariance   <- function (m, minVariance) {
-    columns     <- apply(m, 2, function (x) any(var(x) > minVariance))
+getByCV   <- function (m, minCV) {
+    columns     <- apply(m, 2, function (x) any(cv(x) > minCV))
     m           <- m[ ,columns]
     output      <- list(matrix = m, columns = columns)
     output
@@ -95,8 +101,8 @@ generateVector      <- function (n, value = FALSE, lower = -0.5, upper = 0.5) {
 
 # How Mayn Decimals?
 decimals            <- function (x, d) {
-    x <- format(round(x, d), nsmall = d)
-    x
+    y <- format(round(x, d), nsmall = d)
+    y
 }
 
 # 
@@ -112,13 +118,14 @@ signum              <- function (x) {
 
 # Sigmoid function -- To Learn Good 
 sigmoid             <- function (x) {
-    x <- (1 / (1 + exp(-x)))
-    x
+    y <- (1 / (1 + exp(-x)))
+    y
 }
 
 # Fast Sigmoid Approximation
 fSigmoid            <- function (x) {
-    x <- x / (1 + abs(x))
+    y <- x / (1 + abs(x))
+    y
 }
 
 # 
@@ -400,18 +407,18 @@ testingData         <- t(data.matrix(testExpressionData.mod.reorder))
 
 # Standard Sample Selection
 SampleSize          <- 40
-Epochs              <- 5000
-EtaP                <- 0.2
-EtaH                <- 0.4
+Epochs              <- 50
+EtaP                <- 0.08
+EtaH                <- 0.2
 HiddenNodes         <- 200
 DWeightLimit        <- 0.5
 HWeightLimit        <- 0.5
 
 # High Variance Sample Selection
-HighVariance        <- TRUE
-MinVariance         <- 1
-HiddenNodeRatio     <- 0.08
-PlotTrainROC        <- TRUE
+HighCV              <- TRUE
+MinCV               <- 16
+HiddenNodeRatio     <- 0.20
+PlotTrainROC        <- FALSE
 
 # 
 # Additional Setup
@@ -429,8 +436,8 @@ tSubset             <- vector()
 # Create Training Subset & Add Bias Terms
 trainingDim         <- dim(trainingData)
 trainBiasTerms      <- generateVector(trainingDim[1], 1)
-if (HighVariance == TRUE) {
-    tSubset         <- getByVariance(trainingData, MinVariance)
+if (HighCV == TRUE) {
+    tSubset         <- getByCV(trainingData, MinCV)
     hvTrainData     <- tSubset$matrix
     trainingSubset  <- cbind(trainBiasTerms, hvTrainData)
     trDim           <- dim(trainingSubset)
@@ -444,7 +451,7 @@ colnames(trainingSubset) <- NULL
 # Create Testing Subset & Add Bias Terms
 testingDim          <- dim(testingData)
 testBiasTerms       <- generateVector(testingDim[1], 1)
-if (HighVariance == TRUE) {
+if (HighCV == TRUE) {
     hvTestData      <- testingData[ ,tSubset$columns]
     testingSubset   <- cbind(testBiasTerms, hvTestData)
 
@@ -457,6 +464,7 @@ colnames(testingSubset) <- NULL
 # Classifications & Predictions
 # 
 
+P <- proc.time()
 for (i in 1:nDrugs) {
     print(paste("Drug ", i, ": ", drugs[i]), sep="")
     knownClasses    <- vector()
@@ -497,6 +505,8 @@ for (i in 1:nDrugs) {
     # Test Predictions
     tPredictions    <- cbind(tPredictions, p = list(tPredict$classes))
 }
+RT           <- proc.time() - P
+print(paste("Neural Net Runtime:", RT[3], "seconds"))
 
 #
 # Wrangle Output & Save Predictions to CSV
@@ -515,7 +525,7 @@ values       <- t(cbind(t(subTop), t(subBottom)))
 ids          <- seq(1, length(values), 1)
 subdf        <- data.frame(id=as.matrix(ids), value=as.matrix(values))
 submission   <- data.frame(lapply(subdf, as.character), stringsAsFactors=FALSE)
-filename     <- paste("submissions/nn/genes_", SampleSize, "_epochs_", Epochs , "_hiddenNodes_", HiddenNodes, "_etaP_", EtaP, "_etaH_", EtaH, "_dataWeightsLimit_", DWeightLimit, "_hiddenWeightsLimit_", HWeightLimit, ".csv", sep="")
+filename     <- paste("submissions/nn/genes_", SampleSize, "_epochs_", Epochs , "_hiddenNodes_", HiddenNodes, "_etaP_", EtaP, "_etaH_", EtaH, "_dataWeightsLimit_", DWeightLimit, "_hiddenWeightsLimit_", HWeightLimit, "_highCV_", HighCV, ".csv", sep="")
 write.csv(submission, file=filename, row.names = FALSE)
 print(paste("Output Saved As:", filename))
 

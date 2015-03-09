@@ -40,19 +40,24 @@ insert              <- function (vector, element, position = 0) {
 
 # How Many Decimals?
 decimals            <- function (x, d) {
-    x <- format(round(x, d), nsmall = d)
-    x
+    y <- format(round(x, d), nsmall = d)
+    y
+}
+
+cv                  <- function (x) {
+    y <- 100 * (sd(x, na.rm=TRUE) / mean(x, na.rm=TRUE)) 
+    y
 }
 
 #Not In function
 `%notin%` <- function (x,y) !(x %in% y) 
 
-# Gathers high variance genes and targets and reassigns them to training data
-getByVariance       <- function (df, vThreshold = 2, geneStartColumn = 1, absoluteVal = TRUE, overThresh = TRUE) {
+# Gathers high CV genes and targets and reassigns them to training data
+getByCV         <- function (df, vThreshold = 2, geneStartColumn = 1, absoluteVal = TRUE, overThresh = TRUE) {
     v           <- vector()
     for (i in 1:ncol(df)) {
         l               <- length(v)
-        cVar            <- as.numeric(var(df[i]))
+        cVar            <- as.numeric(cv(df[i]))
         v               <- c(v, cVar)
     }
     if (absoluteVal == TRUE) {
@@ -145,26 +150,26 @@ print("Status: Done")
 print("Status: Loading parameters . . .")
 
 # SVM Parameters 
-svmCost     <- 2
+svmCost     <- 0.4
 svmGamma    <- 0.078
-svmKernel   <- "polynomial"
-svmDegree   <- 20
+svmKernel   <- "linear"
+svmDegree   <- 2
 svmType     <- "C-classification"
-svmCoef0    <- 2.8
+svmCoef0    <- 2
 svmCross    <- 2
 
 # Select on High Variance Genes
-selectVar   <- FALSE
-varThresh   <- 8
-absValVar   <- TRUE
-aboveThresh <- TRUE
+SelectCV    <- TRUE
+ThreshCV    <- 24
+AbsValCV    <- TRUE
+AboveThresh <- TRUE
 
 # Select on Maximum Expressed Genes
-selectMax   <- TRUE
-maxThresh   <- 2
-absValMax   <- TRUE
+SelectMax   <- FALSE
+MaxThresh   <- 2
+AbsValMax   <- TRUE
 
-# If selectVar == FALSE, Use nGenes Selection Criteria
+# If SelectCV == FALSE, Use nGenes Selection Criteria
 nStart      <- 1
 nGenes      <- 1000
 
@@ -174,12 +179,12 @@ nDrugs              <- length(drugs)
 totalGeneCount      <- dim(as.data.frame(trainExpressionData))[1] # This is the Maximum Number of Predictors Possible
 genePredictorRange  <- nStart:(nStart + nGenes - 1) #Selects Genes Labeled X1 - X10 in Training Data Set - 100 genes, Trying not to Get Too Crazy
 
-if (selectVar == TRUE) {
-    highVariance    <- getByVariance(trainingData, varThresh, 12, absValVar, aboveThresh)
-    nGenes          <- length(highVariance)
-    predictorGenes  <- paste(paste("X", highVariance, sep=""), collapse= " + ") #Creates Predictor String for Formula 
-} else if (selectMax == TRUE) {
-    highExpression  <- getByVariance(trainingData, maxThresh, 12, absValMax)
+if (SelectCV == TRUE) {
+    highCV          <- getByCV(trainingData, ThreshCV, 12, AbsValCV, AboveThresh)
+    nGenes          <- length(highCV)
+    predictorGenes  <- paste(paste("X", highCV, sep=""), collapse= " + ") #Creates Predictor String for Formula 
+} else if (SelectMax == TRUE) {
+    highExpression  <- getByCV(trainingData, MaxThresh, 12, AbsValMax)
     nGenes          <- length(highExpression)
     predictorGenes  <- paste(paste("X", highExpression, sep=""), collapse= " + ") #Creates Predictor String for Formula 
 } else {
@@ -227,7 +232,7 @@ values       <- t(cbind(t(subTop), t(subBottom)))
 ids          <- seq(1, length(values), 1)
 subdf        <- data.frame(id=as.matrix(ids), value=as.matrix(values))
 submission   <- data.frame(lapply(subdf, as.character), stringsAsFactors=FALSE)
-filename     <- paste("submissions/svm/genes_", nGenes, "_varianceSelect_", selectVar , "_kernel_", svmKernel, "_cost_", svmCost, "_gamma_", svmGamma, "_degree_", svmDegree, "_coef0_", svmCoef0, "_cross_", svmCross, ".csv", sep="")
+filename     <- paste("submissions/svm/genes_", nGenes, "_cvSelect_", SelectCV , "_kernel_", svmKernel, "_cost_", svmCost, "_gamma_", svmGamma, "_degree_", svmDegree, "_coef0_", svmCoef0, "_cross_", svmCross, ".csv", sep="")
 write.csv(submission, file=filename, row.names = FALSE)
 print(paste("Output Saved As:", filename))
 
