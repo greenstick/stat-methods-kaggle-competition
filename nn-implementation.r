@@ -40,13 +40,13 @@ insert              <- function (vector, element, position = 0) {
 }
 
 # Utility Function to Retrieve Column From Data Frame - Just Because The Standard Syntax Gives Me a Headache
-getColumn             <- function (df, col) {
+getColumn           <- function (df, col) {
     c <- (df[[col]])
     c
 }
 
 # Subsets a Data Frame Column by It's Name Using a Regex
-getColumnByRegex  <- function (df, regex) {
+getColumnByRegex    <- function (df, regex) {
     d <- subset(df, select=(names(df)[grep(regex, names(df))]))
     d
 }
@@ -64,25 +64,29 @@ getTestData         <- function (data, classNames, class) {
     l
 }
 
-# Coefficient of Variation
-cv                  <- function (x) {
-    y <- 100 * (sd(x, na.rm=TRUE) / mean(x, na.rm=TRUE)) 
+# Get Coefficient of Variation
+cv                  <- function (x, dimension = 2) {
+    if (is.data.frame(x) == TRUE) {
+        y <- 100 * (apply(x, dimension, sd, na.rm=TRUE) / apply(x, dimension, mean, na.rm=TRUE))
+    } else {
+        y <- 100 * (sd(x, na.rm=TRUE) / mean(x, na.rm=TRUE)) 
+    }
     y
 }
 
 # Subsets matrix by columns by quantiles
-getByQuantile   <- function (m, lowerCutoff = 0.25, upperCutoff = 0.75) {
-    q           <- quantile(m, probs = c(lowerCutoff, upperCutoff))
-    columns     <- apply(m, 2, function (x) any(x < q[1] | x > q[2]))
-    m           <- m[ ,columns]
+getByQuantile       <- function (m, lowerCutoff = 0.25, upperCutoff = 0.75) {
+    q               <- quantile(m, probs = c(lowerCutoff, upperCutoff))
+    columns         <- apply(m, 2, function (x) any(x < q[1] | x > q[2]))
+    m               <- m[ ,columns]
     m
 }
 
 # Subsets matrix by variance cutoff
-getByCV   <- function (m, minCV) {
-    columns     <- apply(m, 2, function (x) any(cv(x) > minCV))
-    m           <- m[ ,columns]
-    output      <- list(matrix = m, columns = columns)
+getByCV             <- function (m, minCV) {
+    columns         <- apply(m, 2, function (x) any(cv(x) > minCV))
+    m               <- m[ ,columns]
+    output          <- list(matrix = m, columns = columns)
     output
 }
 
@@ -132,7 +136,7 @@ fSigmoid            <- function (x) {
 # Artifical Neural Network Training Function
 # 
 
-ANN.train <- function (epochs = 2, inputTrainingData, trainingTargets, etaP = 0.1, etaH = 0.01, hiddenNodes = 20, dataWeightsLimit = 0.05, hiddenWeightsLimit = 0.5, plotData = list(), visualizeWeights = FALSE, verboseTrain = TRUE) {
+ANN.train           <- function (epochs = 2, inputTrainingData, trainingTargets, etaP = 0.1, etaH = 0.01, hiddenNodes = 20, dataWeightsLimit = 0.05, hiddenWeightsLimit = 0.5, plotData = list(), visualizeWeights = FALSE, verboseTrain = TRUE) {
     # Configuration     
     inputTrainingDataDim    <- dim(inputTrainingData)
     inputTrainingLengthC    <- inputTrainingDataDim[1]
@@ -274,7 +278,7 @@ ANN.train <- function (epochs = 2, inputTrainingData, trainingTargets, etaP = 0.
 # Artifical Neural Network Classification Function
 # 
 
-ANN.classify <- function (inputTestData, testTargets = vector(), calibratedWeights = computedWeights$trainedWeights, calibratedHidden = computedWeights$trainedHidden, verboseClassify = TRUE) {
+ANN.classify            <- function (inputTestData, testTargets = vector(), calibratedWeights = computedWeights$trainedWeights, calibratedHidden = computedWeights$trainedHidden, verboseClassify = TRUE) {
     # Configure
     inputTestDataDim    <- dim(inputTestData)
     inputTestLengthC    <- inputTestDataDim[1]

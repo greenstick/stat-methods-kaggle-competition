@@ -44,8 +44,13 @@ decimals            <- function (x, d) {
     y
 }
 
-cv                  <- function (x) {
-    y <- 100 * (sd(x, na.rm=TRUE) / mean(x, na.rm=TRUE)) 
+# Get Coefficient of Variation
+cv                  <- function (x, dimension = 2) {
+    if (is.data.frame(x) == TRUE) {
+        y <- 100 * (apply(x, dimension, sd, na.rm=TRUE) / apply(x, dimension, mean, na.rm=TRUE))
+    } else {
+        y <- 100 * (sd(x, na.rm=TRUE) / mean(x, na.rm=TRUE)) 
+    }
     y
 }
 
@@ -55,9 +60,9 @@ cv                  <- function (x) {
 # Gathers high CV genes and targets and reassigns them to training data
 getByCV         <- function (df, vThreshold = 2, geneStartColumn = 1, absoluteVal = TRUE, overThresh = TRUE) {
     v           <- vector()
-    for (i in 1:ncol(df)) {
+    for (i in geneStartColumn:ncol(df)) {
         l               <- length(v)
-        cVar            <- as.numeric(cv(df[i]))
+        cVar            <- cv(df[i])
         v               <- c(v, cVar)
     }
     if (absoluteVal == TRUE) {
@@ -143,24 +148,24 @@ testingData         <- data.frame(t(as.data.frame(testExpressionData.mod.reorder
 
 print("Status: Done")
 
-#2
+#
 # Setup Parameters
 #
 
 print("Status: Loading parameters . . .")
 
 # SVM Parameters 
-svmCost     <- 0.4
+svmCost     <- 20
 svmGamma    <- 0.078
 svmKernel   <- "linear"
 svmDegree   <- 2
-svmType     <- "C-classification"
-svmCoef0    <- 2
-svmCross    <- 2
+svmType     <- "one-classification"
+svmCoef0    <- 1
+svmCross    <- 1
 
 # Select on High Variance Genes
 SelectCV    <- TRUE
-ThreshCV    <- 24
+ThreshCV    <- 28
 AbsValCV    <- TRUE
 AboveThresh <- TRUE
 
@@ -177,17 +182,17 @@ nGenes      <- 1000
 drugs               <- gsub("-", ".", trainKeyTransposed$Drug) # Vector of Drug Names
 nDrugs              <- length(drugs)
 totalGeneCount      <- dim(as.data.frame(trainExpressionData))[1] # This is the Maximum Number of Predictors Possible
-genePredictorRange  <- nStart:(nStart + nGenes - 1) #Selects Genes Labeled X1 - X10 in Training Data Set - 100 genes, Trying not to Get Too Crazy
 
 if (SelectCV == TRUE) {
-    highCV          <- getByCV(trainingData, ThreshCV, 12, AbsValCV, AboveThresh)
+    highCV          <- getByCV(trainingData, ThreshCV, 13, AbsValCV, AboveThresh)
     nGenes          <- length(highCV)
     predictorGenes  <- paste(paste("X", highCV, sep=""), collapse= " + ") #Creates Predictor String for Formula 
 } else if (SelectMax == TRUE) {
-    highExpression  <- getByCV(trainingData, MaxThresh, 12, AbsValMax)
+    highExpression  <- getByCV(trainingData, MaxThresh, 13, AbsValMax)
     nGenes          <- length(highExpression)
     predictorGenes  <- paste(paste("X", highExpression, sep=""), collapse= " + ") #Creates Predictor String for Formula 
 } else {
+    genePredictorRange  <- nStart:(nStart + nGenes - 1) #Selects Genes Labeled X1 - X10 in Training Data Set - 100 genes, Trying not to Get Too Crazy
     predictorGenes  <- paste(paste("X", genePredictorRange, sep=""), collapse= " + ") #Creates Predictor String for Formula     
 }
 
@@ -207,7 +212,7 @@ for (i in 1:nDrugs) {
     predict         <- as.numeric(predict(model, trainingData)) - 1
     error           <- sum(trainingData[drugs[i]] - predict) / length(predict) * 100
     print(paste("SVM Model", i, "   Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error), 2), "%     Drug:", drugs[i]))
-    tPredicted      <- as.numeric(predict(model, testingData)) - 1
+    tPredicted      <- list(abs(as.numeric(predict(model, testingData)) - 1))
     tPredictions    <- cbind(tPredictions, tPredicted)
     AUC             <- prediction(predict, knownClasses)
     AUCPerf         <- performance(AUC, "tpr", "fpr")
