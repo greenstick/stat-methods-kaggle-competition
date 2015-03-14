@@ -20,7 +20,7 @@ library(e1071)
 # sessionInfo()
 
 # Set Directory
-setwd("~/Documents/Education/Graduate/OHSU/Courses/Winter 2015/Statistical Methods/assignments/project1/src") 
+setwd("~/Documents/BMI651/kaggle-repository/") 
 
 # 
 # Utility Functions
@@ -122,8 +122,9 @@ trainExpressionData <- list()
 testExpressionData  <- list()
 
 #add subtype data to expression set
+#Subtypes: 1=Basal, 2=Claudin-low, 3=Luminal, 4=Normal-like
 
-expressionData.sub<-rbind(expressionData[,-1], subtypeData[,2])
+expressionData.sub<-rbind(expressionData[,-1], 1000*as.numeric(subtypeData[,2]))
 for (value in testedCellLines) {
     for (j in 2:ncol(expressionData)) {
         if (value == names(expressionData[j]) || paste("X", value, sep="") == names(expressionData[j])) {
@@ -147,6 +148,7 @@ testExpressionData.mod.reorder<-testExpressionData.mod[, predictCellLines]
 
 # Mash Data Frames Together & Remove Duplicate Row Names From trainKey 
 trainingData        <- data.frame(cbind(trainKey[-1], t(as.data.frame(trainExpressionData.mod.reorder))))
+#train.pca$x[,1:2]
 # And Testing Data - Naming Conventions (Not Sure if This Will Actually be Needed - Does MLInterfaces handle train/validate/test?)
 testingData         <- data.frame(t(as.data.frame(testExpressionData.mod.reorder)))
 
@@ -159,16 +161,16 @@ print("Status: Done")
 print("Status: Loading parameters . . .")
 
 # SVM Parameters 
-svmCost     <- 20
+svmCost     <- 2
 svmGamma    <- 0.078
-svmKernel   <- "linear"
-svmDegree   <- 2
-svmType     <- "one-classification"
+svmKernel   <- "polynomial"
+svmDegree   <- 3
+svmType     <- "C-classification"
 svmCoef0    <- 1
 svmCross    <- 1
 
 # Select on High Variance Genes
-SelectCV    <- TRUE
+SelectCV    <- FALSE
 ThreshCV    <- 28
 AbsValCV    <- TRUE
 AboveThresh <- TRUE
