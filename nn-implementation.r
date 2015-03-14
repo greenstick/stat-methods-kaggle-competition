@@ -47,7 +47,7 @@ getColumn           <- function (df, col) {
 
 # Subsets a Data Frame Column by It's Name Using a Regex
 getColumnByRegex    <- function (df, regex) {
-    d <- subset(df, select=(names(df)[grep(regex, names(df))]))
+    d <- subset(df, select = (names(df)[grep(regex, names(df))]))
     d
 }
 

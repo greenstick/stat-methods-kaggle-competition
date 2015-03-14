@@ -205,9 +205,10 @@ print("Status: Done")
 print(paste("Status: Generating SVM Models & Predicting Using", nGenes, "Genes. . ."))
 tPredictions        <- list()
 for (i in 1:nDrugs) {
+    print(paste("Generating SVM Model", i, "& Predicting . . ."))
     knownClasses    <- vector()
     for (known in trainingData[drugs[i]]) knownClasses<- c(knownClasses, as.numeric(known))
-    formula         <- as.formula(paste(drugs[i], " ~ ", predictorGenes, sep=""))
+    formula         <- as.formula(paste(drugs[i], "~", predictorGenes))
     model           <- svm(formula, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
     predict         <- as.numeric(predict(model, trainingData)) - 1
     error           <- sum(trainingData[drugs[i]] - predict) / length(predict) * 100
@@ -215,7 +216,7 @@ for (i in 1:nDrugs) {
     tPredicted      <- list(abs(as.numeric(predict(model, testingData)) - 1))
     tPredictions    <- cbind(tPredictions, tPredicted)
     AUC             <- prediction(predict, knownClasses)
-    AUCPerf         <- performance(AUC, "tpr", "fpr")
+    AUCPerf         <- performance(AUC, "tpr")
     # plot(AUCPerf)
 }
 print("Status: Done")
