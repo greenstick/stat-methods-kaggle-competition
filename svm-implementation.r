@@ -120,6 +120,10 @@ testedCellLines     <- (trainKey[1])$X
 predictCellLines    <- c("HCC1187", "MCF7", "MDAMB361", "MDAMB231", "BT549", "X600MPE", "HCC1954", "SKBR3", "MCF10A", "MCF12A", "HCC3153", "MDAMB157", "LY2", "AU565")
 trainExpressionData <- list()
 testExpressionData  <- list()
+
+#add subtype data to expression set
+
+expressionData.sub<-rbind(expressionData[,-1], subtypeData[,2])
 for (value in testedCellLines) {
     for (j in 2:ncol(expressionData)) {
         if (value == names(expressionData[j]) || paste("X", value, sep="") == names(expressionData[j])) {
@@ -130,15 +134,15 @@ for (value in testedCellLines) {
     }
 }
 
-testedCellLines.mod<-lapply(trainKey$X, as.character)
+testedCellLines.mod<-as.character(trainKey$X)
 testedCellLines.mod[4]<-paste("X", testedCellLines.mod[4], sep="") #changes 184A1 to X184A1
 
 #Extracting desired cell line columns out of expressionData
-trainExpressionData.mod<-expressionData[which(names(expressionData) %in% testedCellLines.mod)]
-testExpressionData.mod<-expressionData[which(names(expressionData) %notin% testedCellLines.mod)]
+trainExpressionData.mod<-expressionData.sub[which(names(expressionData.sub) %in% testedCellLines.mod)]
+testExpressionData.mod<-expressionData.sub[which(names(expressionData.sub) %notin% testedCellLines.mod)]
 
 #We need to reorder the columns according to trainKey
-trainExpressionData.mod.reorder<-trainExpressionData.mod[, testedCellLines]
+trainExpressionData.mod.reorder<-trainExpressionData.mod[, testedCellLines.mod]
 testExpressionData.mod.reorder<-testExpressionData.mod[, predictCellLines]
 
 # Mash Data Frames Together & Remove Duplicate Row Names From trainKey 
