@@ -150,6 +150,10 @@ trainingData        <- data.frame(cbind(trainKey[-1], t(as.data.frame(trainExpre
 # And Testing Data - Naming Conventions (Not Sure if This Will Actually be Needed - Does MLInterfaces handle train/validate/test?)
 testingData         <- data.frame(t(as.data.frame(testExpressionData.mod.reorder)))
 
+# Dimensions
+trainingDims        <- dim(trainingData)
+testingDims         <- dim(testingData)
+
 print("Status: Done")
 
 #
@@ -159,17 +163,31 @@ print("Status: Done")
 print("Status: Loading parameters . . .")
 
 # SVM Parameters 
-svmCost     <- 20
+svmCost     <- 8
 svmGamma    <- 0.078
-svmKernel   <- "linear"
+svmKernel   <- "polynomial"
 svmDegree   <- 2
-svmType     <- "one-classification"
-svmCoef0    <- 1
-svmCross    <- 1
+svmType     <- "C-classification"
+svmCoef0    <- 2
+svmCross    <- 2
+
+# SVM Tuning Parameters
+TuneSVM     <- TRUE
+tuneRandom  <- TRUE
+tuneN       <- 4
+tuneMethod  <- "bootstrap" # "fix", "cross", or "bootstrap"
+tuneNBoot   <- 20
+tuneBootSize<- 20
+tuneBestMod <- TRUE
+tunePerf    <- TRUE
+tuneCross   <- svmCross
+gammaRange  <- 10^(-2:0)
+costRange   <- 10^(-2:1)
+coef0Range  <- 0:2
 
 # Select on High Variance Genes
-SelectCV    <- TRUE
-ThreshCV    <- 28
+SelectCV    <- FALSE
+ThreshCV    <- 32
 AbsValCV    <- TRUE
 AboveThresh <- TRUE
 
@@ -178,9 +196,9 @@ SelectMax   <- FALSE
 MaxThresh   <- 2
 AbsValMax   <- TRUE
 
-# If SelectCV == FALSE, Use nGenes Selection Criteria
+# If SelectCV and SelectMax are FALSE, Use nGenes Selection Criteria
 nStart      <- 1
-nGenes      <- 1000
+nGenes      <- 4
 
 # General Parameters
 drugs               <- gsub("-", ".", trainKeyTransposed$Drug) # Vector of Drug Names
@@ -213,7 +231,13 @@ for (i in 1:nDrugs) {
     knownClasses    <- vector()
     for (known in trainingData[drugs[i]]) knownClasses<- c(knownClasses, as.numeric(known))
     formula         <- as.formula(paste(drugs[i], "~", predictorGenes))
-    model           <- svm(formula, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
+    if (TuneSVM == TRUE) {
+        tuner       <- tune.control(random = tuneRandom, nrepeat = tuneN, sampling = tuneMethod, cross = tuneCross, nboot = tuneNBoot, boot.size = tuneBootSize/trainingDims[1], best.model = tuneBestMod, performances = tunePerf)
+        tuned       <- tune.svm(formula, data = trainingData, gamma = gammaRange, cost = costRange, coef0 = coef0Range, tunecontrol = tuner)
+        model       <- svm(formula, trainingData, type = svmType, gamma = tuned$best.parameters[[1]], cost = tuned$best.parameters[[2]], kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross) 
+    } else {
+        model       <- svm(formula, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross) 
+    }
     predict         <- as.numeric(predict(model, trainingData)) - 1
     error           <- sum(trainingData[drugs[i]] - predict) / length(predict) * 100
     print(paste("SVM Model", i, "   Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error), 2), "%     Drug:", drugs[i]))
@@ -240,8 +264,8 @@ for (col in tPredictions) {
 }
 values       <- t(cbind(t(subTop), t(subBottom)))
 ids          <- seq(1, length(values), 1)
-subdf        <- data.frame(id=as.matrix(ids), value=as.matrix(values))
-submission   <- data.frame(lapply(subdf, as.character), stringsAsFactors=FALSE)
+subdf        <- data.frame(id = as.matrix(ids), value = as.matrix(values))
+submission   <- data.frame(lapply(subdf, as.character), stringsAsFactors = FALSE)
 filename     <- paste("submissions/svm/genes_", nGenes, "_cvSelect_", SelectCV , "_kernel_", svmKernel, "_cost_", svmCost, "_gamma_", svmGamma, "_degree_", svmDegree, "_coef0_", svmCoef0, "_cross_", svmCross, ".csv", sep="")
 write.csv(submission, file=filename, row.names = FALSE)
 print(paste("Output Saved As:", filename))

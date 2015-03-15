@@ -12,10 +12,10 @@ for (file in files) {
 	d <- read.csv(file)$value
 	data <- data + d
 }
-
+≤f
 ids          <- seq(1, l, 1)
 values 		 <- round(data / n)
-subdf        <- data.frame(id=as.matrix(ids), value=as.matrix(values))
+subdf        <- data.frame(id = as.matrix(ids), value = as.matrix(values))
 submission   <- data.frame(lapply(subdf, as.character), stringsAsFactors=FALSE)
 filename     <- paste("submissions/meta/", n, "files.csv", sep="")
 write.csv(submission, file=filename, row.names = FALSE)
