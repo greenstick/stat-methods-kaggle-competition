@@ -18,7 +18,7 @@ library(ROCR)
 # sessionInfo()
 
 # Set Directory
-setwd("~/Documents/Education/Graduate/OHSU/Courses/Winter 2015/Statistical Methods/assignments/project1/src") 
+setwd("~/Documents/BMI651/kaggle project/") 
 
 # Set Seed
 set.seed(1337)
