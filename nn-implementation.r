@@ -408,25 +408,31 @@ names(trainExpressionData.mod.reorder)  <- NULL
 names(testExpressionData.mod.reorder)   <- NULL
 trainingData        <- t(data.matrix(trainExpressionData.mod.reorder))
 testingData         <- t(data.matrix(testExpressionData.mod.reorder))
+# All Data
+allData             <- data.frame(rbind(t(as.data.frame(trainExpressionData.mod.reorder)), t(as.data.frame(testExpressionData.mod.reorder))))
+
 
 # 
 # Setup Parameters
 # 
 
 # Standard Sample Selection
-SampleSize          <- 40
-Epochs              <- 50
-EtaP                <- 0.08
-EtaH                <- 0.2
-HiddenNodes         <- 200
+SampleSize          <- 8000
+Epochs              <- 500
+EtaP                <- 0.12
+EtaH                <- 0.3
+HiddenNodes         <- 2000
 DWeightLimit        <- 0.5
 HWeightLimit        <- 0.5
 
-# High Variance Sample Selection
-HighCV              <- TRUE
-MinCV               <- 16
+# High Variance Sample Selection -- Implementation Incomplete
+HighCV              <- FALSE
+MinCV               <- 32
 HiddenNodeRatio     <- 0.20
 PlotTrainROC        <- FALSE
+
+# Bootstrap & Bagging -- Implementation Incomplete
+BB                  <- FALSE
 
 # 
 # Additional Setup
@@ -445,8 +451,8 @@ tSubset             <- vector()
 trainingDim         <- dim(trainingData)
 trainBiasTerms      <- generateVector(trainingDim[1], 1)
 if (HighCV == TRUE) {
-    tSubset         <- getByCV(trainingData, MinCV)
-    hvTrainData     <- tSubset$matrix
+    trSubset        <- getByCV(allData, MinCV)
+    hvTrainData     <- trSubset$matrix
     trainingSubset  <- cbind(trainBiasTerms, hvTrainData)
     trDim           <- dim(trainingSubset)
     HiddenNodes     <- round(trDim[2] * HiddenNodeRatio)
@@ -460,7 +466,8 @@ colnames(trainingSubset) <- NULL
 testingDim          <- dim(testingData)
 testBiasTerms       <- generateVector(testingDim[1], 1)
 if (HighCV == TRUE) {
-    hvTestData      <- testingData[ ,tSubset$columns]
+    CVSelect        <- names(trSubset$matrix))
+    hvTestData      <- testingData[ ,CVSelect]
     testingSubset   <- cbind(testBiasTerms, hvTestData)
 
 } else {
