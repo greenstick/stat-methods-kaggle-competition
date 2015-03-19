@@ -1,13 +1,13 @@
 #PCA
 train.pca<-prcomp(t(trainExpressionData.mod.reorder))
-train.pca$x
-train.pca$rotation
+#train.pca$x
+#train.pca$rotation
 summary(train.pca)
 
 #PCA plot colored by response drug
 # 2 is first drug CGC.11047
 #black is no response, red is yes response
-for (j in 2:12){
+for (j in 2:13){
 plot(train.pca$x[,1], train.pca$x[,2], col=(as.integer(trainKey[,j]+1)), pch=20, xlab="PCA1", ylab="PCA2", main=paste("Response to", names(trainKey)[j]))
 text(train.pca$x[,1], train.pca$x[,2], rownames(train.pca$x), col=as.integer(trainKey[,j]+1))
 }
@@ -70,7 +70,7 @@ tPredictions        <- list()
 for (i in 1:nDrugs) {
   knownClasses    <- vector()
   for (known in trainingData[drugs[i]]) knownClasses<- c(knownClasses, as.numeric(known))
-  formula         <- as.formula(paste(drugs[i], " ~ ", predictorGenes, sep=""))
+  formula         <- as.formula(paste("factor(", drugs[i], " ~ ", predictorGenes, sep=""))
   model           <- svm(formula, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
   predict         <- as.numeric(predict(model, trainingData))-1
   error           <- sum(trainingData[drugs[i]] - predict) / length(predict) * 100
@@ -86,10 +86,15 @@ print("Status: Done")
 #random Forests
 library(randomForest)
 
-bestmtry <- tuneRF(t(as.data.frame(trainExpressionData.mod.reorder)),as.factor(trainKey$Cisplatin), ntreeTry=100, 
+bestmtry <- tuneRF(t(as.data.frame(trainExpressionData.mod.reorder)),as.factor(trainKey$Paclitaxel), ntreeTry=100, 
                    stepFactor=1.5,improve=0.01, trace=TRUE, plot=TRUE, dobest=FALSE)
-rf1<-randomForest(formula, trainingData, mtry=2, ntree=999, importance=TRUE, keep.forest=TRUE)
-rf2<-randomForest(t(as.data.frame(trainExpressionData.mod.reorder)), y=as.factor(trainKey$Paclitaxel), mtry=136, ntree=999, keep.forest=TRUE, importance=TRUE)
+rf1<-randomForest(formula, trainingData, ntree=999, importance=TRUE, keep.forest=TRUE)
+j=2
+nclass<-sum(trainKey[,j])
+priorclass<-sum(trainKey[,j])/25
+rf2<-randomForest(t(as.data.frame(trainExpressionData.mod.reorder)), 
+                  y=as.factor(trainKey[,j]), mtry=91, ntree=999, keep.forest=TRUE, 
+                  importance=TRUE, classwt=c(1-priorclass, priorclass))
 
 adult.rf.pr = predict(adult.rf,type="prob",newdata=data$val)[,2]
 adult.rf.pred = prediction(adult.rf.pr, data$val$income)
@@ -99,6 +104,8 @@ abline(a=0,b=1,lwd=2,lty=2,col="gray")
 
 importance(rf2)
 varImpPlot(rf2)
+
+MDSplot(rf2, trainKey[,j])
 #hierarchical clustering
 d=dist(as.matrix(t(expressionData[,-1])))
 hc<-hclust(d)
@@ -116,13 +123,13 @@ plot(fit) # dendogram with p values
 pvrect(fit, alpha=.95)
 
 # K-Means Clustering with 4 clusters
-kmfit <- kmeans(t(expressionData[,-1]), 4)
+kmfit <- kmeans(t(expressionData[,-1]), 3)
 
 # Cluster Plot against 1st 2 principal components
 
 # vary parameters for most readable graph
 library(cluster) 
-pammy<-pam(t(expressionData[,-1]), 4, metric="euclidean")
+#pammy<-pam(t(expressionData[,-1]), 4, metric="euclidean")
 clusplot(t(expressionData[,-1]), kmfit$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
 
 # Centroid Plot against 1st 2 discriminant functions
@@ -132,3 +139,8 @@ plotcluster(t(expressionData[,-1]), kmfit$cluster)
 expr.pca<-prcomp(t(expressionData[,-1]))
 plot(expr.pca$x[,1], expr.pca$x[,2], col=(as.integer(kmfit$cluster)), pch=20, xlab="PCA1", ylab="PCA2", main="K-means clustering")
 text(expr.pca$x[,1], expr.pca$x[,2], names(expressionData[,-1]), col=as.integer(kmfit$cluster))
+
+#Test PCA
+test.pca<-prcomp(t(testExpressionData.mod.reorder))
+plot(test.pca$x[,1], test.pca$x[,2], pch=20, xlab="PCA1", ylab="PCA2", main="Test Set PCA")
+text(test.pca$x[,1], test.pca$x[,2], names(testExpressionData.mod.reorder))
