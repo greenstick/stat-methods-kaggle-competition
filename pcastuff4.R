@@ -1,0 +1,96 @@
+#PCA
+#Test script for PCA related stuff
+#Written by Jason Li
+
+train.pca<-prcomp(t(trainExpressionData.mod.reorder))
+pred.pca<-predict(train.pca, t(testExpressionData.mod.reorder)) #prediction on test set
+#train.pca$x
+#train.pca$rotation
+summary(train.pca)
+
+#PCA plot colored by response drug
+# 2 is first drug CGC.11047
+#black is no response, red is yes response
+for (j in 2:13){
+plot(train.pca$x[,1], train.pca$x[,2], col=(as.integer(trainKey[,j]+1)), pch=20, xlab="PC1", ylab="PC2", main=paste("Response to", names(trainKey)[j]))
+text(train.pca$x[,1], train.pca$x[,2], rownames(train.pca$x), col=as.integer(trainKey[,j]+1))
+}
+
+#This section was taken from Ben's SVM code to try out some stuff
+# SVM Parameters 
+svmCost     <- 20
+svmGamma    <- 0.078
+svmKernel   <- "linear"
+svmDegree   <- 2
+svmType     <- "C-classification"
+svmCoef0    <- 1
+svmCross    <- 1
+
+# Select on High Variance Genes
+SelectCV    <- TRUE
+ThreshCV    <- 28
+AbsValCV    <- TRUE
+AboveThresh <- TRUE
+
+# Select on Maximum Expressed Genes
+SelectMax   <- FALSE
+MaxThresh   <- 2
+AbsValMax   <- TRUE
+
+#Select on PCA
+SelectPCA <-TRUE
+# If SelectCV == FALSE, Use nGenes Selection Criteria
+nStart      <- 1
+nGenes      <- 1000
+
+# General Parameters
+drugs               <- gsub("-", ".", trainKeyTransposed$Drug) # Vector of Drug Names
+nDrugs              <- length(drugs)
+totalGeneCount      <- dim(as.data.frame(trainExpressionData))[1] # This is the Maximum Number of Predictors Possible
+
+if (SelectCV == TRUE) {
+  highCV          <- getByCV(trainingData, ThreshCV, 13, AbsValCV, AboveThresh)
+  nGenes          <- length(highCV)
+  predictorGenes  <- paste(paste("X", highCV, sep=""), collapse= " + ") #Creates Predictor String for Formula 
+} else if (SelectMax == TRUE) {
+  highExpression  <- getByCV(trainingData, MaxThresh, 13, AbsValMax)
+  nGenes          <- length(highExpression)
+  predictorGenes  <- paste(paste("X", highExpression, sep=""), collapse= " + ") #Creates Predictor String for Formula 
+} else if (SelectPCA == TRUE) {
+  nGenes <- 2
+  predictorGenes <- ("PCA1+PCA2+PCA3+PCA4+PCA5+PCA6")
+} else {
+  genePredictorRange  <- nStart:(nStart + nGenes - 1) #Selects Genes Labeled X1 - X10 in Training Data Set - 100 genes, Trying not to Get Too Crazy
+  predictorGenes  <- paste(paste("X", genePredictorRange, sep=""), collapse= " + ") #Creates Predictor String for Formula     
+}
+
+print("Status: Done")
+
+# 
+# Run SVM Models per Drug 
+# 
+
+print(paste("Status: Generating SVM Models & Predicting Using", nGenes, "Genes. . ."))
+tPredictions        <- list()
+for (i in 1:nDrugs) {
+  knownClasses    <- vector()
+  for (known in trainingData[drugs[i]]) knownClasses<- c(knownClasses, as.numeric(known))
+  formula         <- as.formula(paste("factor(", drugs[i], " ~ ", predictorGenes, sep=""))
+  model           <- svm(formula, trainingData, type = svmType, gamma = svmGamma, cost = svmCost, kernel = svmKernel, degree = svmDegree, coef0 = svmCoef0, cross = svmCross)
+  predict         <- as.numeric(predict(model, trainingData))-1
+  error           <- sum(trainingData[drugs[i]] - predict) / length(predict) * 100
+  print(paste("SVM Model", i, "   Kernel:", svmKernel, "  Prediction Error:", decimals(abs(error), 2), "%     Drug:", drugs[i]))
+  tPredicted      <- list(abs(as.numeric(predict(model, testingData)) - 1))
+  tPredictions    <- cbind(tPredictions, tPredicted)
+  AUC             <- prediction(predict, knownClasses)
+  AUCPerf         <- performance(AUC, "tpr", "fpr")
+  # plot(AUCPerf)
+}
+print("Status: Done")
+
+
+#Test PCA
+#Not the way to implement it!
+test.pca<-prcomp(t(testExpressionData.mod.reorder))
+plot(test.pca$x[,1], test.pca$x[,2], pch=20, xlab="PCA1", ylab="PCA2", main="Test Set PCA")
+text(test.pca$x[,1], test.pca$x[,2], names(testExpressionData.mod.reorder))
