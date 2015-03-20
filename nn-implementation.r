@@ -74,6 +74,9 @@ cv                  <- function (x, dimension = 2) {
     y
 }
 
+#Not In function
+`%notin%` <- function (x,y) !(x %in% y) 
+
 # Subsets matrix by columns by quantiles
 getByQuantile       <- function (m, lowerCutoff = 0.25, upperCutoff = 0.75) {
     q               <- quantile(m, probs = c(lowerCutoff, upperCutoff))
@@ -374,7 +377,14 @@ predictCellLines    <- c("HCC1187", "MCF7", "MDAMB361", "MDAMB231", "BT549", "X6
 trainExpressionData <- list()
 testExpressionData  <- list()
 #add subtype data to expression set
-expressionData.sub<-rbind(expressionData[,-1], subtypeData[,2])
+#Subtypes: 1=Basal, 2=Claudin-low, 3=Luminal, 4=Normal-like
+#names(expressionData[,-1])
+subtypes.string<-as.character(subtypeData[,1])
+subtypes.string[1]<-paste("X", subtypes.string[1], sep="") #changes 184A1 to X184A1
+subtypes.string[2]<-paste("X", subtypes.string[2], sep="") #changes 600MPE to X600MPE
+expressionData.mod<-expressionData[which(names(expressionData) %in% subtypes.string)]
+expressionData.reorder<-expressionData.mod[, subtypes.string]
+expressionData.sub<-rbind(expressionData.reorder, as.numeric(subtypeData[,2]))
 
 for (value in testedCellLines) {
     for (j in 2:ncol(expressionData)) {
@@ -385,7 +395,6 @@ for (value in testedCellLines) {
         }
     }
 }
-
 
 testedCellLines.mod<-as.character(trainKey$X)
 testedCellLines.mod[4]<-paste("X", testedCellLines.mod[4], sep="") #changes 184A1 to X184A1
@@ -406,10 +415,26 @@ testingData         <- data.frame(t(as.data.frame(testExpressionData.mod.reorder
 # Remove Row & Column Names & Convert to Matrix
 names(trainExpressionData.mod.reorder)  <- NULL
 names(testExpressionData.mod.reorder)   <- NULL
+# Training Data
 trainingData        <- t(data.matrix(trainExpressionData.mod.reorder))
+# Testing Data
 testingData         <- t(data.matrix(testExpressionData.mod.reorder))
 # All Data
 allData             <- data.frame(rbind(t(as.data.frame(trainExpressionData.mod.reorder)), t(as.data.frame(testExpressionData.mod.reorder))))
+
+# PCA
+train.pca<-prcomp(t(trainExpressionData.mod.reorder))
+test.pca<-prcomp(t(testExpressionData.mod.reorder))
+exprsub.pca<-prcomp(t(expressionData.sub))
+exprsub.pca.transpose<-as.data.frame(t(exprsub.pca$x))
+trainExprsub.pca<-exprsub.pca$x[which(names(exprsub.pca.transpose) %in% testedCellLines.mod),]
+testExprsub.pca<-exprsub.pca$x[which(names(exprsub.pca.transpose) %notin% testedCellLines.mod),]
+pcaTrainingData        <- data.matrix(trainExprsub.pca)
+pcaTestingData         <- data.matrix(testExprsub.pca)
+colnames(pcaTrainingData) <- NULL
+colnames(pcaTestingData)  <- NULL
+rownames(pcaTrainingData) <- NULL
+rownames(pcaTestingData)  <- NULL
 
 
 # 
@@ -417,13 +442,16 @@ allData             <- data.frame(rbind(t(as.data.frame(trainExpressionData.mod.
 # 
 
 # Standard Sample Selection
-SampleSize          <- 8000
-Epochs              <- 500
-EtaP                <- 0.12
-EtaH                <- 0.3
-HiddenNodes         <- 2000
+SampleSize          <- 80
+Epochs              <- 2000
+EtaP                <- 0.01
+EtaH                <- 0.013
+HiddenNodes         <- 30
 DWeightLimit        <- 0.5
 HWeightLimit        <- 0.5
+
+# Use PCA
+PCA                 <- TRUE
 
 # High Variance Sample Selection -- Implementation Incomplete
 HighCV              <- FALSE
@@ -441,6 +469,7 @@ BB                  <- FALSE
 drugs               <- gsub("-", ".", trainKeyTransposed$Drug)
 nDrugs              <- length(drugs)
 tPredictions        <- list()
+pPredictions        <- list()
 tSubset             <- vector()
 
 # 
@@ -465,11 +494,13 @@ colnames(trainingSubset) <- NULL
 # Create Testing Subset & Add Bias Terms
 testingDim          <- dim(testingData)
 testBiasTerms       <- generateVector(testingDim[1], 1)
-if (HighCV == TRUE) {
+if (PCA == TRUE) {
+    trainingSubset  <- cbind(trainBiasTerms, pcaTrainingData)
+    testingSubset   <- cbind(testBiasTerms, pcaTestingData)
+} else if (HighCV == TRUE) {
     CVSelect        <- names(trSubset$matrix))
     hvTestData      <- testingData[ ,CVSelect]
     testingSubset   <- cbind(testBiasTerms, hvTestData)
-
 } else {
     testingSubset   <- cbind(testBiasTerms, testingData[1:testingDim[1], 1:SampleSize])
 }
@@ -519,6 +550,7 @@ for (i in 1:nDrugs) {
     )
     # Test Predictions
     tPredictions    <- cbind(tPredictions, p = list(tPredict$classes))
+    pPredictions    <- cbind(pPredictions, p = list(tPredict$pValues))
 }
 RT           <- proc.time() - P
 print(paste("Neural Net Runtime:", RT[3], "seconds"))
@@ -530,18 +562,32 @@ print(paste("Neural Net Runtime:", RT[3], "seconds"))
 print("Status: Generating Output File")
 subTop       <- list()
 subBottom    <- list()
+pSubTop      <- list()
+pSubBottom   <- list()
 for (col in tPredictions) {
     top         <- col[1:9]
     subTop      <- insert(subTop, top, length(subTop))
     bottom      <- col[10:14]
     subBottom   <- insert(subBottom, bottom, length(subBottom))
 }
+for (col in pPredictions) {
+    pTop        <- col[1:9]
+    pSubTop     <- insert(pSubTop, pTop, length(pSubTop))
+    pBottom     <- col[10:14]
+    pSubBottom  <- insert(pSubBottom, pBottom, length(pSubBottom))
+}
 values       <- t(cbind(t(subTop), t(subBottom)))
+pValues      <- t(cbind(t(pSubTop), t(pSubBottom)))
 ids          <- seq(1, length(values), 1)
 subdf        <- data.frame(id=as.matrix(ids), value=as.matrix(values))
+pSubdf       <- data.frame(id=as.matrix(ids), value=as.matrix(pValues))
 submission   <- data.frame(lapply(subdf, as.character), stringsAsFactors=FALSE)
+pSubmission  <- data.frame(lapply(pSubdf, as.character), stringsAsFactors=FALSE)
 filename     <- paste("submissions/nn/genes_", SampleSize, "_epochs_", Epochs , "_hiddenNodes_", HiddenNodes, "_etaP_", EtaP, "_etaH_", EtaH, "_dataWeightsLimit_", DWeightLimit, "_hiddenWeightsLimit_", HWeightLimit, "_highCV_", HighCV, ".csv", sep="")
+pFilename    <- paste("submissions/nn/p_genes_", SampleSize, "_epochs_", Epochs , "_hiddenNodes_", HiddenNodes, "_etaP_", EtaP, "_etaH_", EtaH, "_dataWeightsLimit_", DWeightLimit, "_hiddenWeightsLimit_", HWeightLimit, "_highCV_", HighCV, ".csv", sep="")
 write.csv(submission, file=filename, row.names = FALSE)
+write.csv(pSubmission, file=pFilename, row.names = FALSE)
 print(paste("Output Saved As:", filename))
+print(paste("Output Saved As:", pFilename))
 
 print("Status: Done")

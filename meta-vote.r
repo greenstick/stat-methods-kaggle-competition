@@ -24,9 +24,9 @@ bagData 	<- function (data, samplesize, iterations) {
 }
 
 # Set Some Params
-highScoring  <- TRUE
-ss 			 <- 50
-iter 		 <- 20000
+highScoring  <- FALSE
+ss 			 <- 3
+iter 		 <- 2000
 
 # Crudely gathers files from every nn & svm run and does a majority vote for response of each cell line
 if (highScoring == TRUE) {

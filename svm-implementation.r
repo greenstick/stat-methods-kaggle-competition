@@ -170,16 +170,16 @@ svmCost     <- 10000
 svmGamma    <- 8
 svmKernel   <- "linear"
 svmDegree   <- 2
-svmType     <- "C-classification"
-svmCoef0    <- 2
+svmType     <- "eps-regression"
+svmCoef0    <- 0
 svmCross    <- 2
 
 # PCA Classification -- Unimplemented As of Yet
 usePCA      <- FALSE
 
 # SVM Tuning Parameters -- No errors, but the runtime indicates somethings amiss
-TuneSVM     <- FALSE
-tuneRandom  <- TRUE
+TuneSVM     <- TRUE
+tuneRandom  <- FALSE
 tuneN       <- 8
 tuneMethod  <- "bootstrap" # "fix", "cross", or "bootstrap"
 tuneNBoot   <- 20
@@ -193,7 +193,7 @@ coef0Range  <- 0
 
 # Select on High Variance Genes
 SelectCV    <- TRUE
-ThreshCV    <- 18
+ThreshCV    <- 24
 AbsValCV    <- TRUE
 AboveThresh <- TRUE
 
