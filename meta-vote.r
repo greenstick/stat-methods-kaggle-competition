@@ -25,12 +25,18 @@ bagData 	<- function (data, samplesize, iterations) {
 
 # Set Some Params
 highScoring  <- FALSE
+Rgx 		 <- TRUE
+rPattern 	 <- 
 ss 			 <- 3
-iter 		 <- 2000
+iter 		 <- 10
 
 # Crudely gathers files from every nn & svm run and does a majority vote for response of each cell line
 if (highScoring == TRUE) {
 	files 	<- Sys.glob("submissions/high-score/*.csv")
+} else if (Rgx == TRUE) {
+	sfn 		<- list.files(path = "submissions/nn/", pattern = , all.files = TRUE, full.names = TRUE, recursive = FALSE)
+	print(sfn)
+	sfs 		<- list.files(path = "submissions/svm/", pattern = , all.files = TRUE, full.names = TRUE, recursive = FALSE)
 } else {
 	nnFiles <- Sys.glob("submissions/nn/*.csv")
 	svmFiles<- Sys.glob("submissions/svm/*.csv")

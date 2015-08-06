@@ -170,7 +170,7 @@ svmCost     <- 10000
 svmGamma    <- 8
 svmKernel   <- "linear"
 svmDegree   <- 2
-svmType     <- "eps-regression"
+svmType     <- "C-classification"
 svmCoef0    <- 0
 svmCross    <- 2
 
